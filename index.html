@@ -1,0 +1,2258 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>LifeUp — Transformação Pessoal</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="LifeUp">
+<meta name="theme-color" content="#5B6EF8">
+<meta name="description" content="Seu portal de transformação pessoal">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
+<style>
+/* ── Variables ── */
+:root {
+  --p: #5B6EF8;
+  --p2: #764BA2;
+  --pg: linear-gradient(135deg,#5B6EF8,#764BA2);
+  --gold: #F59E0B;
+  --green: #22C55E;
+  --red: #EF4444;
+  --bg: #F8FAFC;
+  --white: #FFFFFF;
+  --text: #0F172A;
+  --muted: #64748B;
+  --light: #94A3B8;
+  --border: #E2E8F0;
+  --r: 18px;
+  --rl: 28px;
+  --sh: 0 4px 20px rgba(0,0,0,.08);
+  --sh2: 0 12px 40px rgba(91,110,248,.18);
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { height:100%; font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); overflow:hidden; }
+
+/* ── App shell ── */
+#app { max-width:430px; height:100vh; margin:0 auto; position:relative; overflow:hidden; background:var(--bg); display:flex; flex-direction:column; }
+
+/* ── Screens ── */
+.screen { position:absolute; inset:0; display:flex; flex-direction:column; opacity:0; pointer-events:none; transform:translateX(40px); transition:all .38s cubic-bezier(.4,0,.2,1); overflow:hidden; }
+.screen.active { opacity:1; pointer-events:all; transform:none; }
+.screen.slide-left { transform:translateX(-40px); opacity:0; }
+.scroll-area { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:90px; }
+.scroll-area::-webkit-scrollbar { display:none; }
+
+/* ── Bottom nav ── */
+#bottom-nav { position:absolute; bottom:0; left:0; right:0; background:var(--white); border-top:1px solid var(--border); display:flex; padding:8px 0 max(env(safe-area-inset-bottom),8px); z-index:100; }
+.nav-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer; padding:4px 0; transition:all .2s; }
+.nav-item svg { width:22px; height:22px; }
+.nav-item span { font-size:10px; font-weight:500; color:var(--light); transition:color .2s; }
+.nav-item.active svg path,.nav-item.active svg circle,.nav-item.active svg rect { stroke:var(--p); }
+.nav-item.active span { color:var(--p); }
+.nav-item svg path,.nav-item svg circle,.nav-item svg rect { stroke:var(--light); transition:stroke .2s; }
+
+/* ── Onboarding ── */
+#s-onboard { background:var(--pg); z-index:200; }
+#s-onboard .scroll-area { padding-bottom:0; display:flex; flex-direction:column; }
+.ob-header { display:flex; justify-content:space-between; align-items:center; padding:20px 24px 0; }
+.ob-logo { font-size:20px; font-weight:900; color:#fff; letter-spacing:-1px; }
+.ob-skip { font-size:13px; color:rgba(255,255,255,.7); cursor:pointer; padding:6px; }
+.ob-slides { flex:1; position:relative; overflow:hidden; min-height:400px; }
+.ob-slide { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:20px 32px 0; opacity:0; transform:translateX(60px); transition:all .45s cubic-bezier(.4,0,.2,1); pointer-events:none; }
+.ob-slide.active { opacity:1; transform:none; pointer-events:all; }
+.ob-slide.exit { transform:translateX(-60px); opacity:0; }
+.ob-illus { width:220px; height:200px; margin:0 auto 20px; }
+.ob-title { font-size:26px; font-weight:800; color:#fff; text-align:center; line-height:1.2; margin-bottom:10px; }
+.ob-sub { font-size:14px; color:rgba(255,255,255,.8); text-align:center; line-height:1.6; }
+.ob-input { width:100%; background:rgba(255,255,255,.15); border:2px solid rgba(255,255,255,.3); border-radius:14px; padding:14px 18px; font-size:16px; color:#fff; outline:none; font-family:inherit; transition:all .2s; margin-top:16px; }
+.ob-input::placeholder { color:rgba(255,255,255,.5); }
+.ob-input:focus { background:rgba(255,255,255,.25); border-color:rgba(255,255,255,.7); }
+.ob-modules { display:grid; grid-template-columns:1fr 1fr; gap:10px; width:100%; margin-top:16px; }
+.ob-mod { background:rgba(255,255,255,.15); border:2px solid rgba(255,255,255,.2); border-radius:14px; padding:14px 12px; cursor:pointer; text-align:center; transition:all .2s; }
+.ob-mod.selected { background:rgba(255,255,255,.3); border-color:rgba(255,255,255,.8); }
+.ob-mod-icon { font-size:26px; margin-bottom:6px; }
+.ob-mod-label { font-size:12px; font-weight:600; color:#fff; }
+.ob-footer { padding:20px 24px 36px; }
+.ob-dots { display:flex; justify-content:center; gap:8px; margin-bottom:20px; }
+.ob-dot { width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,.35); transition:all .3s; }
+.ob-dot.active { width:20px; border-radius:4px; background:#fff; }
+.btn-main { width:100%; background:#fff; color:var(--p); border:none; border-radius:14px; padding:16px; font-size:16px; font-weight:700; cursor:pointer; font-family:inherit; transition:all .2s; box-shadow:0 8px 24px rgba(0,0,0,.15); }
+.btn-main:active { transform:scale(.97); }
+
+/* ── Dashboard ── */
+#s-home .scroll-area { background:var(--bg); }
+.dash-header { padding:24px 20px 0; display:flex; justify-content:space-between; align-items:flex-start; }
+.dash-greet { font-size:13px; color:var(--muted); font-weight:500; }
+.dash-name { font-size:22px; font-weight:800; color:var(--text); margin-top:2px; }
+.streak-badge { display:flex; align-items:center; gap:5px; background:var(--white); border-radius:20px; padding:6px 12px; box-shadow:var(--sh); }
+.streak-badge span { font-size:12px; font-weight:700; color:var(--text); }
+
+/* Progress hero card */
+.hero-card { margin:16px 20px 0; background:var(--pg); border-radius:var(--rl); padding:24px; position:relative; overflow:hidden; box-shadow:var(--sh2); }
+.hero-card-bg { position:absolute; inset:0; opacity:.12; }
+.hero-top { display:flex; align-items:center; gap:20px; position:relative; }
+.progress-ring-wrap { position:relative; flex-shrink:0; }
+.progress-ring-wrap svg { transform:rotate(-90deg); }
+.progress-ring-wrap .ring-pct { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; transform:none; }
+.ring-pct .pct-num { font-size:22px; font-weight:800; color:#fff; line-height:1; }
+.ring-pct .pct-label { font-size:9px; color:rgba(255,255,255,.7); font-weight:600; letter-spacing:.5px; margin-top:2px; }
+.hero-info { flex:1; }
+.hero-label { font-size:11px; color:rgba(255,255,255,.7); font-weight:600; letter-spacing:.5px; text-transform:uppercase; }
+.hero-title { font-size:17px; font-weight:700; color:#fff; margin-top:4px; line-height:1.3; }
+.hero-sub { font-size:12px; color:rgba(255,255,255,.7); margin-top:6px; }
+.hero-actions { display:flex; gap:10px; margin-top:18px; position:relative; }
+.hero-btn { flex:1; background:rgba(255,255,255,.18); border:1.5px solid rgba(255,255,255,.3); border-radius:12px; padding:10px 8px; text-align:center; cursor:pointer; transition:all .2s; }
+.hero-btn:active { background:rgba(255,255,255,.28); }
+.hero-btn span { display:block; font-size:11px; color:rgba(255,255,255,.8); font-weight:500; }
+.hero-btn strong { display:block; font-size:13px; color:#fff; font-weight:700; margin-top:2px; }
+
+/* Section headers */
+.section-header { display:flex; justify-content:space-between; align-items:center; padding:22px 20px 12px; }
+.section-title { font-size:16px; font-weight:700; color:var(--text); }
+.section-link { font-size:13px; color:var(--p); font-weight:600; cursor:pointer; }
+
+/* Achievement chips */
+.ach-scroll { display:flex; gap:10px; padding:0 20px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.ach-scroll::-webkit-scrollbar { display:none; }
+.ach-chip { flex-shrink:0; width:90px; background:var(--white); border-radius:16px; padding:14px 10px; text-align:center; box-shadow:var(--sh); cursor:pointer; transition:all .2s; position:relative; }
+.ach-chip:active { transform:scale(.96); }
+.ach-chip.locked { opacity:.55; filter:grayscale(.8); }
+.ach-chip .ach-icon { font-size:28px; margin-bottom:6px; display:block; }
+.ach-chip .ach-name { font-size:10px; font-weight:600; color:var(--text); line-height:1.3; }
+.ach-chip .ach-lock { position:absolute; top:6px; right:6px; font-size:10px; }
+
+/* Create achievement button */
+.create-ach-btn { margin:16px 20px 0; background:var(--white); border:2px dashed var(--border); border-radius:var(--r); padding:16px; display:flex; align-items:center; gap:14px; cursor:pointer; transition:all .2s; }
+.create-ach-btn:hover { border-color:var(--p); }
+.create-ach-btn:active { transform:scale(.98); }
+.create-ach-icon { width:44px; height:44px; background:var(--p); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
+.create-ach-text strong { display:block; font-size:14px; font-weight:700; color:var(--text); }
+.create-ach-text span { font-size:12px; color:var(--muted); }
+
+/* Lesson cards (home) */
+.lesson-list { display:flex; flex-direction:column; gap:10px; padding:0 20px; }
+.lesson-card { background:var(--white); border-radius:var(--r); padding:14px 16px; display:flex; align-items:center; gap:14px; box-shadow:var(--sh); cursor:pointer; transition:all .2s; }
+.lesson-card:active { transform:scale(.98); }
+.lesson-card.done { background:#F0FFF4; }
+.lesson-card.active-lesson { border:2px solid var(--p); }
+.lesson-num { width:42px; height:42px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; flex-shrink:0; }
+.lesson-info { flex:1; min-width:0; }
+.lesson-card-title { font-size:13px; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.lesson-card-sub { font-size:11px; color:var(--muted); margin-top:2px; }
+.lesson-status { font-size:18px; flex-shrink:0; }
+
+/* ── Conquistas screen ── */
+.conquistas-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:0 20px; }
+.badge-card { background:var(--white); border-radius:var(--r); padding:18px 14px; text-align:center; box-shadow:var(--sh); cursor:pointer; transition:all .2s; position:relative; overflow:hidden; }
+.badge-card:active { transform:scale(.96); }
+.badge-card.locked { opacity:.5; }
+.badge-card.earned .badge-glow { opacity:1; }
+.badge-glow { position:absolute; top:-30px; left:50%; transform:translateX(-50%); width:80px; height:80px; border-radius:50%; opacity:0; filter:blur(20px); transition:opacity .3s; }
+.badge-icon-wrap { font-size:40px; margin-bottom:10px; position:relative; display:inline-block; }
+.badge-card.earned .badge-icon-wrap { animation:badge-bounce .5s ease-out; }
+.badge-title { font-size:13px; font-weight:700; color:var(--text); }
+.badge-sub { font-size:11px; color:var(--muted); margin-top:4px; line-height:1.4; }
+.badge-status { font-size:10px; font-weight:600; margin-top:8px; padding:3px 10px; border-radius:20px; display:inline-block; }
+.badge-card.earned .badge-status { background:#F0FFF4; color:#16A34A; }
+.badge-card.locked .badge-status { background:var(--bg); color:var(--muted); }
+.custom-badge-card { border:2px dashed var(--border); }
+
+/* ── Lessons screen ── */
+.lessons-full-list { display:flex; flex-direction:column; gap:10px; padding:0 20px 0; }
+.module-group { margin-bottom:8px; }
+.module-label { font-size:11px; font-weight:700; color:var(--muted); letter-spacing:.8px; text-transform:uppercase; padding:0 0 8px; }
+.lesson-full-card { background:var(--white); border-radius:var(--r); padding:16px; display:flex; align-items:center; gap:14px; box-shadow:var(--sh); cursor:pointer; transition:all .2s; }
+.lesson-full-card:active { transform:scale(.98); }
+.lesson-full-card.done { border-left:4px solid var(--green); }
+.lesson-full-num { width:48px; height:48px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; color:#fff; flex-shrink:0; }
+.lesson-full-info { flex:1; }
+.lesson-full-title { font-size:14px; font-weight:700; color:var(--text); }
+.lesson-full-sub { font-size:12px; color:var(--muted); margin-top:3px; }
+.lesson-full-status { font-size:20px; flex-shrink:0; }
+
+/* ── Lesson Detail ── */
+#s-lesson { background:var(--bg); z-index:150; }
+.lesson-detail-header { padding:16px 20px; display:flex; align-items:center; gap:12px; background:var(--white); border-bottom:1px solid var(--border); }
+.back-btn { width:36px; height:36px; border-radius:10px; background:var(--bg); display:flex; align-items:center; justify-content:center; cursor:pointer; border:none; transition:all .2s; flex-shrink:0; }
+.back-btn:active { transform:scale(.92); }
+.lesson-detail-title { font-size:15px; font-weight:700; color:var(--text); flex:1; }
+.lesson-detail-badge { font-size:11px; font-weight:600; color:#fff; padding:3px 10px; border-radius:20px; flex-shrink:0; }
+.lesson-hero-illus { width:100%; height:200px; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; }
+.tutorial-area { background:var(--white); margin:16px 20px; border-radius:var(--r); overflow:hidden; box-shadow:var(--sh); }
+.tutorial-step-header { display:flex; align-items:center; justify-content:space-between; padding:16px 16px 10px; border-bottom:1px solid var(--border); }
+.tutorial-step-label { font-size:11px; font-weight:700; color:var(--muted); letter-spacing:.5px; text-transform:uppercase; }
+.tutorial-step-dots { display:flex; gap:5px; }
+.tutorial-step-dot { width:6px; height:6px; border-radius:50%; background:var(--border); transition:all .3s; }
+.tutorial-step-dot.active { background:var(--p); width:16px; border-radius:4px; }
+.tutorial-step-content { min-height:160px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px 20px; text-align:center; }
+.tutorial-step-icon { font-size:56px; margin-bottom:14px; animation:float 3s ease-in-out infinite; }
+.tutorial-step-title { font-size:17px; font-weight:700; color:var(--text); margin-bottom:8px; }
+.tutorial-step-desc { font-size:13px; color:var(--muted); line-height:1.6; }
+.tutorial-nav { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-top:1px solid var(--border); }
+.tut-btn { padding:8px 16px; border-radius:10px; border:none; font-size:13px; font-weight:600; font-family:inherit; cursor:pointer; transition:all .2s; }
+.tut-btn.prev { background:var(--bg); color:var(--muted); }
+.tut-btn.next { background:var(--p); color:#fff; }
+.tut-btn:active { transform:scale(.95); }
+.tut-btn:disabled { opacity:.4; cursor:default; }
+.lesson-content { padding:0 20px 20px; }
+.lesson-content h3 { font-size:15px; font-weight:700; color:var(--text); margin:20px 0 8px; }
+.lesson-content p { font-size:14px; color:var(--muted); line-height:1.7; margin-bottom:10px; }
+.lesson-content blockquote { border-left:3px solid var(--p); padding:10px 14px; background:var(--p)/8; border-radius:0 10px 10px 0; margin:12px 0; font-size:13px; color:var(--text); font-style:italic; line-height:1.6; }
+.lesson-content ul { padding-left:16px; margin:8px 0; }
+.lesson-content li { font-size:13px; color:var(--muted); line-height:1.8; }
+.complete-btn { margin:8px 20px 20px; background:var(--pg); border:none; border-radius:14px; padding:16px; font-size:15px; font-weight:700; color:#fff; width:calc(100% - 40px); cursor:pointer; font-family:inherit; transition:all .2s; box-shadow:var(--sh2); }
+.complete-btn:active { transform:scale(.98); }
+.complete-btn.done { background:var(--green); box-shadow:0 8px 24px rgba(34,197,94,.3); }
+
+/* ── Profile screen ── */
+.profile-hero { margin:20px; background:var(--pg); border-radius:var(--rl); padding:28px 24px; text-align:center; position:relative; overflow:hidden; }
+.profile-avatar { width:70px; height:70px; background:rgba(255,255,255,.25); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:30px; margin:0 auto 12px; border:3px solid rgba(255,255,255,.5); }
+.profile-username { font-size:20px; font-weight:800; color:#fff; }
+.profile-dream { font-size:13px; color:rgba(255,255,255,.75); margin-top:6px; line-height:1.5; }
+.profile-stats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin:16px 20px 0; }
+.stat-card { background:var(--white); border-radius:var(--r); padding:16px 10px; text-align:center; box-shadow:var(--sh); }
+.stat-num { font-size:22px; font-weight:800; color:var(--p); }
+.stat-label { font-size:11px; color:var(--muted); font-weight:500; margin-top:3px; }
+.profile-section { margin:20px 20px 0; }
+.profile-section-title { font-size:13px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.7px; margin-bottom:10px; }
+.profile-item { background:var(--white); border-radius:var(--r); padding:14px 16px; display:flex; align-items:center; gap:12px; box-shadow:var(--sh); margin-bottom:8px; cursor:pointer; transition:all .2s; }
+.profile-item:active { transform:scale(.98); }
+.profile-item-icon { width:38px; height:38px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+.profile-item-text strong { display:block; font-size:14px; font-weight:600; color:var(--text); }
+.profile-item-text span { font-size:12px; color:var(--muted); }
+.profile-item-arrow { margin-left:auto; color:var(--light); font-size:16px; }
+
+/* ── Caixa screen ── */
+.caixa-hero { margin:16px 20px 0; background:linear-gradient(135deg,#22C55E,#16A34A); border-radius:var(--rl); padding:22px 20px; position:relative; overflow:hidden; box-shadow:0 12px 40px rgba(34,197,94,.22); }
+.caixa-hero-bg { position:absolute; inset:0; opacity:.1; }
+.caixa-hero-label { font-size:11px; color:rgba(255,255,255,.75); font-weight:600; letter-spacing:.6px; text-transform:uppercase; }
+.caixa-hero-total { font-size:32px; font-weight:900; color:#fff; margin:4px 0 2px; letter-spacing:-1px; }
+.caixa-hero-sub { font-size:12px; color:rgba(255,255,255,.7); }
+.caixa-hero-row { display:flex; justify-content:space-between; align-items:flex-end; }
+.caixa-add-btn { background:rgba(255,255,255,.2); border:2px solid rgba(255,255,255,.4); border-radius:12px; padding:10px 16px; font-size:13px; font-weight:700; color:#fff; cursor:pointer; font-family:inherit; transition:all .2s; }
+.caixa-add-btn:active { transform:scale(.96); background:rgba(255,255,255,.3); }
+.caixa-categories { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:16px 20px 0; }
+.caixa-cat { background:var(--white); border-radius:var(--r); padding:14px; box-shadow:var(--sh); cursor:pointer; transition:all .2s; }
+.caixa-cat:active { transform:scale(.97); }
+.caixa-cat-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.caixa-cat-icon { font-size:22px; }
+.caixa-cat-pct { font-size:11px; font-weight:700; padding:3px 8px; border-radius:20px; }
+.caixa-cat-name { font-size:12px; font-weight:600; color:var(--muted); margin-bottom:4px; }
+.caixa-cat-val { font-size:20px; font-weight:800; color:var(--text); }
+.caixa-cat-bar-wrap { height:4px; background:var(--border); border-radius:2px; margin-top:10px; overflow:hidden; }
+.caixa-cat-bar { height:100%; border-radius:2px; transition:width .6s cubic-bezier(.4,0,.2,1); }
+.caixa-history { margin:16px 20px 0; }
+.caixa-history-title { font-size:13px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.6px; margin-bottom:10px; }
+.caixa-entry { background:var(--white); border-radius:var(--r); padding:14px 16px; display:flex; align-items:center; gap:12px; box-shadow:var(--sh); margin-bottom:8px; }
+.caixa-entry-icon { width:38px; height:38px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+.caixa-entry-info { flex:1; }
+.caixa-entry-label { font-size:13px; font-weight:600; color:var(--text); }
+.caixa-entry-date { font-size:11px; color:var(--muted); margin-top:2px; }
+.caixa-entry-val { font-size:15px; font-weight:800; color:var(--green); }
+.caixa-empty { text-align:center; padding:32px 20px; color:var(--muted); font-size:14px; }
+/* Cat detail modal */
+.fin-cat-detail { margin-top:16px; }
+.fin-cat-detail-row { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border); }
+.fin-cat-detail-label { font-size:14px; color:var(--muted); }
+.fin-cat-detail-val { font-size:14px; font-weight:700; color:var(--text); }
+.fin-spend-btn { width:100%; margin-top:16px; padding:14px; border-radius:12px; border:2px solid var(--border); background:var(--bg); font-size:14px; font-weight:600; color:var(--text); cursor:pointer; font-family:inherit; transition:all .2s; }
+.fin-spend-btn:active { transform:scale(.97); }
+/* Sub-tabs */
+.caixa-tabs { display:flex; background:var(--bg); border-bottom:1px solid var(--border); padding:0 16px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.caixa-tabs::-webkit-scrollbar { display:none; }
+.caixa-tab { flex-shrink:0; padding:12px 14px; font-size:13px; font-weight:600; color:var(--muted); cursor:pointer; border-bottom:2.5px solid transparent; transition:all .2s; white-space:nowrap; }
+.caixa-tab.active { color:var(--green); border-bottom-color:var(--green); }
+.caixa-tab-content { display:none; }
+.caixa-tab-content.active { display:block; }
+/* Diário */
+.diario-summary { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:16px 20px 0; }
+.diario-sum-card { background:var(--white); border-radius:var(--r); padding:14px; box-shadow:var(--sh); }
+.diario-sum-label { font-size:11px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.5px; }
+.diario-sum-val { font-size:18px; font-weight:800; margin-top:4px; }
+.diario-add-row { display:flex; gap:10px; padding:14px 20px 0; }
+.diario-btn { flex:1; padding:12px; border-radius:12px; border:none; font-size:13px; font-weight:700; font-family:inherit; cursor:pointer; transition:all .2s; }
+.diario-btn.entrada { background:#F0FFF4; color:#16A34A; }
+.diario-btn.saida { background:#FEF2F2; color:#DC2626; }
+.diario-btn:active { transform:scale(.97); }
+.diario-entry { background:var(--white); border-radius:var(--r); padding:12px 16px; display:flex; align-items:center; gap:10px; box-shadow:var(--sh); margin-bottom:8px; }
+.diario-entry-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+/* Dívidas & Desejos */
+.divida-item { background:var(--white); border-radius:var(--r); padding:14px 16px; display:flex; align-items:center; gap:12px; box-shadow:var(--sh); margin-bottom:8px; }
+.divida-item.pago { opacity:.55; }
+.divida-name { flex:1; font-size:14px; font-weight:600; color:var(--text); }
+.divida-val { font-size:14px; font-weight:800; color:var(--red); }
+.divida-val.pago { color:var(--green); font-size:12px; }
+.desejo-item { background:var(--white); border-radius:var(--r); padding:14px 16px; display:flex; align-items:center; gap:12px; box-shadow:var(--sh); margin-bottom:8px; cursor:pointer; transition:all .2s; }
+.desejo-item:active { transform:scale(.98); }
+.desejo-check { width:22px; height:22px; border-radius:6px; border:2px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:12px; flex-shrink:0; transition:all .2s; }
+.desejo-check.done { background:var(--green); border-color:var(--green); color:#fff; }
+.desejo-label { font-size:14px; font-weight:600; color:var(--text); flex:1; }
+.desejo-item.done .desejo-label { text-decoration:line-through; color:var(--muted); }
+/* Investimentos */
+.invest-total-card { margin:16px 20px 0; background:linear-gradient(135deg,#7C3AED,#5B6EF8); border-radius:var(--r); padding:18px 20px; box-shadow:0 8px 30px rgba(124,58,237,.2); }
+.invest-total-label { font-size:11px; color:rgba(255,255,255,.7); font-weight:600; text-transform:uppercase; letter-spacing:.5px; }
+.invest-total-val { font-size:26px; font-weight:900; color:#fff; margin-top:4px; }
+.invest-item { background:var(--white); border-radius:var(--r); padding:14px 16px; display:flex; justify-content:space-between; align-items:center; box-shadow:var(--sh); margin-bottom:8px; }
+.invest-name { font-size:14px; font-weight:600; color:var(--text); }
+.invest-val { font-size:14px; font-weight:800; color:#7C3AED; }
+/* Settings percentages */
+.fin-pct-row { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+.fin-pct-label { flex:1; font-size:14px; font-weight:600; color:var(--text); }
+.fin-pct-input { width:70px; background:var(--bg); border:2px solid var(--border); border-radius:10px; padding:8px 10px; font-size:14px; font-weight:700; color:var(--text); font-family:inherit; outline:none; text-align:center; transition:border-color .2s; }
+.fin-pct-input:focus { border-color:var(--green); }
+.fin-pct-total { font-size:12px; font-weight:600; text-align:right; margin-top:-4px; margin-bottom:12px; }
+
+/* ── Modal: criar conquista ── */
+#modal-conquista { position:absolute; inset:0; z-index:300; display:flex; flex-direction:column; justify-content:flex-end; opacity:0; pointer-events:none; transition:opacity .3s; }
+#modal-conquista.active { opacity:1; pointer-events:all; }
+.modal-backdrop { position:absolute; inset:0; background:rgba(0,0,0,.4); backdrop-filter:blur(4px); }
+.modal-sheet { position:relative; background:var(--white); border-radius:28px 28px 0 0; padding:8px 24px 36px; transform:translateY(100%); transition:transform .4s cubic-bezier(.4,0,.2,1); max-height:85vh; overflow-y:auto; }
+#modal-conquista.active .modal-sheet { transform:none; }
+.modal-handle { width:40px; height:4px; background:var(--border); border-radius:2px; margin:12px auto 20px; }
+.modal-title { font-size:18px; font-weight:800; color:var(--text); margin-bottom:20px; }
+.form-group { margin-bottom:16px; }
+.form-label { font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px; display:block; }
+.form-input { width:100%; background:var(--bg); border:2px solid var(--border); border-radius:12px; padding:12px 14px; font-size:15px; color:var(--text); font-family:inherit; outline:none; transition:all .2s; }
+.form-input:focus { border-color:var(--p); background:var(--white); }
+.emoji-grid { display:flex; gap:8px; flex-wrap:wrap; }
+.emoji-opt { width:40px; height:40px; border-radius:10px; border:2px solid var(--border); background:var(--bg); display:flex; align-items:center; justify-content:center; font-size:20px; cursor:pointer; transition:all .2s; }
+.emoji-opt.selected { border-color:var(--p); background:var(--p)/10; transform:scale(1.1); }
+.modal-btns { display:flex; gap:10px; margin-top:20px; }
+.btn-cancel { flex:1; padding:14px; border-radius:12px; border:2px solid var(--border); background:var(--bg); font-size:15px; font-weight:600; color:var(--muted); cursor:pointer; font-family:inherit; transition:all .2s; }
+.btn-save { flex:2; padding:14px; border-radius:12px; border:none; background:var(--pg); font-size:15px; font-weight:700; color:#fff; cursor:pointer; font-family:inherit; transition:all .2s; box-shadow:var(--sh2); }
+.btn-save:active,.btn-cancel:active { transform:scale(.97); }
+
+/* ── Toast ── */
+#toast { position:absolute; top:20px; left:50%; transform:translateX(-50%) translateY(-100px); background:var(--text); color:#fff; padding:12px 20px; border-radius:14px; font-size:14px; font-weight:600; white-space:nowrap; z-index:500; transition:transform .4s cubic-bezier(.4,0,.2,1); box-shadow:0 8px 30px rgba(0,0,0,.2); display:flex; align-items:center; gap:8px; }
+#toast.show { transform:translateX(-50%) translateY(0); }
+
+/* ── Achievement unlock celebration ── */
+#modal-unlock { position:absolute; inset:0; z-index:400; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .3s; }
+#modal-unlock.active { opacity:1; pointer-events:all; }
+.unlock-bg { position:absolute; inset:0; background:rgba(0,0,0,.6); backdrop-filter:blur(8px); }
+.unlock-card { position:relative; background:var(--white); border-radius:var(--rl); padding:36px 30px; text-align:center; margin:0 30px; box-shadow:0 30px 80px rgba(0,0,0,.25); }
+.unlock-icon { font-size:70px; animation:badge-bounce .6s .1s both; display:block; margin-bottom:16px; }
+.unlock-title { font-size:13px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; margin-bottom:6px; }
+.unlock-name { font-size:22px; font-weight:800; color:var(--text); margin-bottom:8px; }
+.unlock-desc { font-size:14px; color:var(--muted); line-height:1.6; }
+.unlock-btn { margin-top:24px; background:var(--pg); border:none; border-radius:14px; padding:14px 40px; font-size:15px; font-weight:700; color:#fff; cursor:pointer; font-family:inherit; box-shadow:var(--sh2); transition:all .2s; }
+.unlock-btn:active { transform:scale(.97); }
+.confetti-container { position:absolute; inset:0; pointer-events:none; overflow:hidden; border-radius:var(--rl); }
+.confetti-piece { position:absolute; width:8px; height:8px; border-radius:2px; animation:confetti-fall 1.2s ease-out forwards; }
+
+/* ── Animations ── */
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+@keyframes float2 { 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(-6px) rotate(5deg)} }
+@keyframes spin-slow { from{transform:rotate(0)} to{transform:rotate(360deg)} }
+@keyframes pulse-ring { 0%{transform:scale(1);opacity:.8} 100%{transform:scale(1.8);opacity:0} }
+@keyframes badge-bounce { 0%{transform:scale(0) rotate(-20deg);opacity:0} 60%{transform:scale(1.15) rotate(5deg)} 100%{transform:scale(1) rotate(0);opacity:1} }
+@keyframes confetti-fall { 0%{transform:translateY(-20px) rotate(0deg);opacity:1} 100%{transform:translateY(200px) rotate(720deg);opacity:0} }
+@keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+@keyframes slide-up { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
+.anim-slide-up { animation:slide-up .5s ease-out both; }
+
+/* Stagger delays */
+.d1{animation-delay:.05s} .d2{animation-delay:.1s} .d3{animation-delay:.15s} .d4{animation-delay:.2s} .d5{animation-delay:.25s} .d6{animation-delay:.3s}
+
+/* Stars decoration */
+.stars-bg { position:absolute; inset:0; pointer-events:none; }
+.star { position:absolute; background:#fff; border-radius:50%; animation:pulse-ring 2s ease-out infinite; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Onboarding ── -->
+  <div id="s-onboard" class="screen active">
+    <div class="ob-header">
+      <div class="ob-logo">LifeUp ✦</div>
+      <div class="ob-skip" onclick="skipOnboarding()">Pular</div>
+    </div>
+    <div class="ob-slides">
+      <!-- Step 0: Welcome -->
+      <div class="ob-slide active" id="ob0">
+        <div class="ob-illus">
+          <svg viewBox="0 0 220 200" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="glow0" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" style="stop-color:#FFD700;stop-opacity:.6"/>
+                <stop offset="100%" style="stop-color:#FFD700;stop-opacity:0"/>
+              </radialGradient>
+              <linearGradient id="mtn0" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" style="stop-color:rgba(255,255,255,.35)"/>
+                <stop offset="100%" style="stop-color:rgba(255,255,255,.1)"/>
+              </linearGradient>
+            </defs>
+            <!-- Mountain -->
+            <polygon points="110,20 30,160 190,160" fill="url(#mtn0)" stroke="rgba(255,255,255,.4)" stroke-width="1.5"/>
+            <!-- Inner highlight -->
+            <polygon points="110,20 80,100 140,100" fill="rgba(255,255,255,.12)"/>
+            <!-- Path dots -->
+            <line x1="110" y1="155" x2="110" y2="30" stroke="rgba(255,255,255,.5)" stroke-width="1.5" stroke-dasharray="4,5"/>
+            <!-- Ground -->
+            <ellipse cx="110" cy="165" rx="80" ry="8" fill="rgba(255,255,255,.1)"/>
+            <!-- Star at peak -->
+            <g transform="translate(110,12)" style="animation:float 2.5s ease-in-out infinite">
+              <circle cx="0" cy="0" r="16" fill="url(#glow0)"/>
+              <path d="M0,-10 L2.4,-3.1 L9.5,-3.1 L3.8,1.2 L6.2,8.1 L0,4 L-6.2,8.1 L-3.8,1.2 L-9.5,-3.1 L-2.4,-3.1 Z" fill="#FFD700" filter="drop-shadow(0 0 4px rgba(255,215,0,.8))"/>
+            </g>
+            <!-- Person -->
+            <g transform="translate(110,148)">
+              <circle cy="-8" r="5" fill="rgba(255,255,255,.9)"/>
+              <rect x="-4" y="-3" width="8" height="11" rx="3" fill="rgba(255,255,255,.8)"/>
+              <line x1="-7" y1="0" x2="-4" y2="2" stroke="rgba(255,255,255,.8)" stroke-width="2" stroke-linecap="round"/>
+              <line x1="7" y1="0" x2="4" y2="2" stroke="rgba(255,255,255,.8)" stroke-width="2" stroke-linecap="round"/>
+            </g>
+            <!-- Floating mini stars -->
+            <circle cx="40" cy="60" r="2.5" fill="rgba(255,255,255,.7)" style="animation:float 3s .5s ease-in-out infinite"/>
+            <circle cx="170" cy="80" r="2" fill="rgba(255,255,255,.6)" style="animation:float 2.8s 1s ease-in-out infinite"/>
+            <circle cx="60" cy="120" r="1.5" fill="rgba(255,255,255,.5)" style="animation:float 3.5s .2s ease-in-out infinite"/>
+            <circle cx="155" cy="50" r="3" fill="rgba(255,255,255,.5)" style="animation:float 2.2s .8s ease-in-out infinite"/>
+          </svg>
+        </div>
+        <div class="ob-title">Sua jornada começa aqui</div>
+        <div class="ob-sub">O melhor investimento que você pode fazer é em você mesmo. Cada lição, cada conquista — constrói quem você está se tornando.</div>
+      </div>
+      <!-- Step 1: Name -->
+      <div class="ob-slide" id="ob1">
+        <div class="ob-illus">
+          <svg viewBox="0 0 220 200" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="card1" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:rgba(255,255,255,.3)"/>
+                <stop offset="100%" style="stop-color:rgba(255,255,255,.1)"/>
+              </linearGradient>
+            </defs>
+            <!-- ID Card -->
+            <rect x="30" y="50" width="160" height="110" rx="16" fill="url(#card1)" stroke="rgba(255,255,255,.4)" stroke-width="1.5" style="animation:float 3s ease-in-out infinite"/>
+            <!-- Avatar circle -->
+            <circle cx="75" cy="95" r="22" fill="rgba(255,255,255,.25)" stroke="rgba(255,255,255,.5)" stroke-width="2"/>
+            <circle cx="75" cy="88" r="9" fill="rgba(255,255,255,.7)"/>
+            <ellipse cx="75" cy="107" rx="13" ry="9" fill="rgba(255,255,255,.5)"/>
+            <!-- Name line -->
+            <rect x="108" y="82" width="65" height="7" rx="4" fill="rgba(255,255,255,.6)"/>
+            <rect x="108" y="95" width="48" height="5" rx="3" fill="rgba(255,255,255,.35)"/>
+            <rect x="108" y="105" width="56" height="5" rx="3" fill="rgba(255,255,255,.25)"/>
+            <!-- Star badge -->
+            <g transform="translate(168,62)">
+              <circle r="12" fill="#FFD700" filter="drop-shadow(0 2px 6px rgba(255,215,0,.5))"/>
+              <text y="4" text-anchor="middle" fill="#fff" font-size="14" font-weight="bold">★</text>
+            </g>
+          </svg>
+        </div>
+        <div class="ob-title">Como devemos te chamar?</div>
+        <input class="ob-input" id="input-name" type="text" placeholder="Seu primeiro nome" maxlength="30">
+      </div>
+      <!-- Step 2: Dream -->
+      <div class="ob-slide" id="ob2">
+        <div class="ob-illus">
+          <svg viewBox="0 0 220 200" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="dreamGlow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" style="stop-color:rgba(255,255,255,.5)"/>
+                <stop offset="100%" style="stop-color:rgba(255,255,255,0)"/>
+              </radialGradient>
+            </defs>
+            <!-- Big dream cloud -->
+            <g style="animation:float 3s ease-in-out infinite">
+              <ellipse cx="110" cy="80" rx="70" ry="45" fill="rgba(255,255,255,.25)" stroke="rgba(255,255,255,.4)" stroke-width="1.5"/>
+              <ellipse cx="80" cy="95" rx="30" ry="22" fill="rgba(255,255,255,.2)" stroke="rgba(255,255,255,.3)" stroke-width="1"/>
+              <ellipse cx="140" cy="95" rx="30" ry="22" fill="rgba(255,255,255,.2)" stroke="rgba(255,255,255,.3)" stroke-width="1"/>
+              <!-- Stars inside cloud -->
+              <text x="85" y="78" fill="#FFD700" font-size="20">★</text>
+              <text x="110" y="70" fill="#FFD700" font-size="26">🌟</text>
+              <text x="128" y="82" fill="#FFD700" font-size="16">✦</text>
+            </g>
+            <!-- Connecting dots to ground -->
+            <line x1="110" y1="120" x2="110" y2="165" stroke="rgba(255,255,255,.4)" stroke-width="1.5" stroke-dasharray="3,4"/>
+            <!-- Person looking up -->
+            <g transform="translate(110,168)">
+              <circle cy="-8" r="6" fill="rgba(255,255,255,.9)"/>
+              <rect x="-5" y="-2" width="10" height="12" rx="3" fill="rgba(255,255,255,.8)"/>
+              <!-- Arms up -->
+              <line x1="-5" y1="2" x2="-14" y2="-5" stroke="rgba(255,255,255,.8)" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="5" y1="2" x2="14" y2="-5" stroke="rgba(255,255,255,.8)" stroke-width="2.5" stroke-linecap="round"/>
+            </g>
+          </svg>
+        </div>
+        <div class="ob-title">Qual é o seu maior sonho?</div>
+        <input class="ob-input" id="input-dream" type="text" placeholder="Ex: Construir uma empresa de sucesso" maxlength="80">
+      </div>
+      <!-- Step 3: Focus module -->
+      <div class="ob-slide" id="ob3">
+        <div class="ob-title" style="margin-bottom:8px">Qual área quer focar primeiro?</div>
+        <div class="ob-sub" style="margin-bottom:0">Você pode mudar quando quiser</div>
+        <div class="ob-modules">
+          <div class="ob-mod" onclick="selectModule('Mentalidade')" id="mod-Mentalidade">
+            <div class="ob-mod-icon">🧠</div>
+            <div class="ob-mod-label">Mentalidade & Crenças</div>
+          </div>
+          <div class="ob-mod" onclick="selectModule('Metas')" id="mod-Metas">
+            <div class="ob-mod-icon">🎯</div>
+            <div class="ob-mod-label">Metas & Visão</div>
+          </div>
+          <div class="ob-mod" onclick="selectModule('Ação')" id="mod-Ação">
+            <div class="ob-mod-icon">⚡</div>
+            <div class="ob-mod-label">Ação & Disciplina</div>
+          </div>
+          <div class="ob-mod" onclick="selectModule('Emoções')" id="mod-Emoções">
+            <div class="ob-mod-icon">💫</div>
+            <div class="ob-mod-label">Emoções & Estado Interno</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ob-footer">
+      <div class="ob-dots">
+        <div class="ob-dot active" id="dot0"></div>
+        <div class="ob-dot" id="dot1"></div>
+        <div class="ob-dot" id="dot2"></div>
+        <div class="ob-dot" id="dot3"></div>
+      </div>
+      <button class="btn-main" id="ob-next-btn" onclick="obNext()">Começar →</button>
+    </div>
+  </div>
+
+  <!-- ── Home / Dashboard ── -->
+  <div id="s-home" class="screen">
+    <div class="scroll-area">
+      <!-- Header -->
+      <div class="dash-header anim-slide-up d1">
+        <div>
+          <div class="dash-greet" id="dash-greet">Bom dia ☀️</div>
+          <div class="dash-name" id="dash-name">Seja bem-vindo!</div>
+        </div>
+        <div class="streak-badge">
+          <span>🔥</span>
+          <span id="streak-count">0</span>
+          <span>dias</span>
+        </div>
+      </div>
+
+      <!-- Progress hero card -->
+      <div class="hero-card anim-slide-up d2">
+        <svg class="hero-card-bg" viewBox="0 0 400 180" preserveAspectRatio="xMidYMid slice">
+          <circle cx="350" cy="20" r="120" fill="white"/>
+          <circle cx="50" cy="180" r="80" fill="white"/>
+        </svg>
+        <div class="hero-top">
+          <div class="progress-ring-wrap">
+            <svg width="90" height="90">
+              <circle cx="45" cy="45" r="38" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="6"/>
+              <circle id="progress-circle" cx="45" cy="45" r="38" fill="none" stroke="white" stroke-width="6" stroke-linecap="round" stroke-dasharray="239" stroke-dashoffset="239" style="transition:stroke-dashoffset 1s ease-out"/>
+            </svg>
+            <div class="ring-pct">
+              <span class="pct-num" id="pct-num">0%</span>
+              <span class="pct-label">PROGRESSO</span>
+            </div>
+          </div>
+          <div class="hero-info">
+            <div class="hero-label">SUA JORNADA</div>
+            <div class="hero-title" id="hero-title">Comece com a Lição 1</div>
+            <div class="hero-sub" id="hero-sub">12 lições para transformar sua vida</div>
+          </div>
+        </div>
+        <div class="hero-actions">
+          <div class="hero-btn" onclick="goToScreen('s-lessons')">
+            <span>Lições</span>
+            <strong id="hero-lessons-count">0/12</strong>
+          </div>
+          <div class="hero-btn" onclick="goToScreen('s-conquistas')">
+            <span>Conquistas</span>
+            <strong id="hero-ach-count">0</strong>
+          </div>
+          <div class="hero-btn" onclick="showOnboarding()">
+            <span>Onboarding</span>
+            <strong>Ver ↗</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Achievements preview -->
+      <div class="section-header anim-slide-up d3">
+        <div class="section-title">Conquistas</div>
+        <div class="section-link" onclick="goToScreen('s-conquistas')">Ver todas →</div>
+      </div>
+      <div class="ach-scroll anim-slide-up d3" id="ach-preview"></div>
+
+      <!-- Create achievement button -->
+      <div class="create-ach-btn anim-slide-up d4" onclick="openModal()">
+        <div class="create-ach-icon">➕</div>
+        <div class="create-ach-text">
+          <strong>Criar Conquista</strong>
+          <span>Adicione suas próprias metas e marcos</span>
+        </div>
+      </div>
+
+      <!-- Lessons preview -->
+      <div class="section-header anim-slide-up d5">
+        <div class="section-title">Próximas Lições</div>
+        <div class="section-link" onclick="goToScreen('s-lessons')">Ver todas →</div>
+      </div>
+      <div class="lesson-list anim-slide-up d6" id="lessons-preview"></div>
+    </div>
+  </div>
+
+  <!-- ── Lessons screen ── -->
+  <div id="s-lessons" class="screen">
+    <div style="padding:20px 20px 0; background:var(--white); border-bottom:1px solid var(--border);">
+      <div style="font-size:22px;font-weight:800;color:var(--text)">Sua Jornada 🗺️</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px;padding-bottom:16px">12 lições · Pensando em Resultados</div>
+    </div>
+    <div class="scroll-area" style="padding-top:16px">
+      <div class="lessons-full-list" id="lessons-full-list"></div>
+    </div>
+  </div>
+
+  <!-- ── Conquistas screen ── -->
+  <div id="s-conquistas" class="screen">
+    <div style="padding:20px 20px 0; background:var(--white); border-bottom:1px solid var(--border);">
+      <div style="font-size:22px;font-weight:800;color:var(--text)">Conquistas 🏆</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px;padding-bottom:16px" id="ach-summary-label">0 conquistas desbloqueadas</div>
+    </div>
+    <div class="scroll-area" style="padding-top:16px">
+      <div class="section-header" style="padding-top:0">
+        <div class="section-title">Lições</div>
+      </div>
+      <div class="conquistas-grid" id="conquistas-lessons-grid"></div>
+      <div class="section-header">
+        <div class="section-title">Especiais</div>
+      </div>
+      <div class="conquistas-grid" id="conquistas-special-grid"></div>
+      <div class="section-header">
+        <div class="section-title">Minhas Metas</div>
+        <div class="section-link" onclick="openModal()">+ Criar</div>
+      </div>
+      <div class="conquistas-grid" id="conquistas-custom-grid">
+        <div class="badge-card custom-badge-card" onclick="openModal()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100px;opacity:1">
+          <div style="font-size:32px;margin-bottom:8px">➕</div>
+          <div style="font-size:13px;font-weight:600;color:var(--muted)">Nova conquista</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Lesson Detail screen ── -->
+  <div id="s-lesson" class="screen">
+    <div class="lesson-detail-header">
+      <button class="back-btn" onclick="closeLesson()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <div class="lesson-detail-title" id="lesson-d-title">Lição 1</div>
+      <div class="lesson-detail-badge" id="lesson-d-badge" style="background:var(--p)">L01</div>
+    </div>
+    <div class="scroll-area" style="padding-top:0;padding-bottom:120px">
+      <div class="lesson-hero-illus" id="lesson-d-illus"></div>
+      <div class="tutorial-area" id="tutorial-area">
+        <div class="tutorial-step-header">
+          <span class="tutorial-step-label">Tutorial Interativo</span>
+          <div class="tutorial-step-dots" id="tut-dots"></div>
+        </div>
+        <div class="tutorial-step-content" id="tut-content">
+          <div class="tutorial-step-icon" id="tut-icon">🎯</div>
+          <div class="tutorial-step-title" id="tut-title">Título</div>
+          <div class="tutorial-step-desc" id="tut-desc">Descrição</div>
+        </div>
+        <div class="tutorial-nav">
+          <button class="tut-btn prev" id="tut-prev" onclick="tutPrev()" disabled>← Anterior</button>
+          <button class="tut-btn next" id="tut-next" onclick="tutNext()">Próximo →</button>
+        </div>
+      </div>
+      <div class="lesson-content" id="lesson-d-content"></div>
+      <button class="complete-btn" id="lesson-complete-btn" onclick="completeLesson()">✓ Marcar como concluída</button>
+    </div>
+  </div>
+
+  <!-- ── Profile screen ── -->
+  <div id="s-profile" class="screen">
+    <div class="scroll-area" style="padding-top:0;padding-bottom:20px">
+      <div class="profile-hero">
+        <div class="profile-avatar">👤</div>
+        <div class="profile-username" id="profile-name">Usuário</div>
+        <div class="profile-dream" id="profile-dream">"Meu maior sonho..."</div>
+      </div>
+      <div class="profile-stats anim-slide-up">
+        <div class="stat-card">
+          <div class="stat-num" id="stat-lessons">0</div>
+          <div class="stat-label">Lições</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="stat-streak">0</div>
+          <div class="stat-label">Dias seguidos</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="stat-ach">0</div>
+          <div class="stat-label">Conquistas</div>
+        </div>
+      </div>
+      <div class="profile-section anim-slide-up">
+        <div class="profile-section-title">Configurações</div>
+        <div class="profile-item" onclick="showOnboarding()">
+          <div class="profile-item-icon" style="background:#EEF0FF">🚀</div>
+          <div class="profile-item-text">
+            <strong>Refazer Onboarding</strong>
+            <span>Atualizar suas informações e metas</span>
+          </div>
+          <span class="profile-item-arrow">›</span>
+        </div>
+        <div class="profile-item" onclick="resetApp()">
+          <div class="profile-item-icon" style="background:#FEF2F2">🔄</div>
+          <div class="profile-item-text">
+            <strong>Reiniciar Progresso</strong>
+            <span>Apagar todos os dados e recomeçar</span>
+          </div>
+          <span class="profile-item-arrow">›</span>
+        </div>
+      </div>
+      <div class="profile-section anim-slide-up">
+        <div class="profile-section-title">Sobre o Programa</div>
+        <div class="profile-item">
+          <div class="profile-item-icon" style="background:#FFF7ED">📚</div>
+          <div class="profile-item-text">
+            <strong>Pensando em Resultados</strong>
+            <span>Bob Proctor & Sandra Gallagher</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Caixa screen ── -->
+  <div id="s-caixa" class="screen">
+    <div style="padding:20px 20px 0; background:var(--white); border-bottom:0; display:flex; justify-content:space-between; align-items:flex-end;">
+      <div>
+        <div style="font-size:22px;font-weight:800;color:var(--text)">Caixa 💰</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:4px;padding-bottom:12px">Organize cada real que entra</div>
+      </div>
+      <div style="padding-bottom:12px">
+        <div onclick="openCaixaSettings()" style="width:34px;height:34px;background:var(--bg);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;border:1px solid var(--border)">⚙️</div>
+      </div>
+    </div>
+    <!-- Sub-tabs -->
+    <div class="caixa-tabs" id="caixa-tabs">
+      <div class="caixa-tab active" onclick="switchCaixaTab('distribuicao')">💰 Distribuição</div>
+      <div class="caixa-tab" onclick="switchCaixaTab('diario')">📓 Diário</div>
+      <div class="caixa-tab" onclick="switchCaixaTab('dividas')">💳 Dívidas</div>
+      <div class="caixa-tab" onclick="switchCaixaTab('desejos')">⭐ Desejos</div>
+      <div class="caixa-tab" onclick="switchCaixaTab('investimentos')">📈 Investimentos</div>
+    </div>
+    <div class="scroll-area" style="padding-top:0;padding-bottom:100px">
+
+      <!-- ── Tab: Distribuição ── -->
+      <div class="caixa-tab-content active" id="tab-distribuicao">
+        <div class="caixa-hero">
+          <svg class="caixa-hero-bg" viewBox="0 0 400 140" preserveAspectRatio="xMidYMid slice"><circle cx="360" cy="-10" r="110" fill="white"/><circle cx="30" cy="140" r="80" fill="white"/></svg>
+          <div class="caixa-hero-label">Total distribuído</div>
+          <div class="caixa-hero-row">
+            <div>
+              <div class="caixa-hero-total" id="caixa-total">R$ 0</div>
+              <div class="caixa-hero-sub" id="caixa-entries-count">Nenhuma entrada ainda</div>
+            </div>
+            <button class="caixa-add-btn" onclick="openFinModal()">+ Registrar</button>
+          </div>
+        </div>
+        <div class="caixa-categories" id="caixa-categories"></div>
+        <div class="caixa-history" style="margin-bottom:8px">
+          <div class="caixa-history-title">Histórico de entradas</div>
+          <div id="caixa-history-list"></div>
+        </div>
+      </div>
+
+      <!-- ── Tab: Diário ── -->
+      <div class="caixa-tab-content" id="tab-diario">
+        <div class="diario-summary">
+          <div class="diario-sum-card">
+            <div class="diario-sum-label">Soma entradas</div>
+            <div class="diario-sum-val" id="d-entrada" style="color:var(--green)">R$ 0</div>
+          </div>
+          <div class="diario-sum-card">
+            <div class="diario-sum-label">Soma saídas</div>
+            <div class="diario-sum-val" id="d-saida" style="color:var(--red)">R$ 0</div>
+          </div>
+          <div class="diario-sum-card">
+            <div class="diario-sum-label">Diferença</div>
+            <div class="diario-sum-val" id="d-diff" style="color:var(--p)">R$ 0</div>
+          </div>
+          <div class="diario-sum-card">
+            <div class="diario-sum-label">Caixa</div>
+            <div class="diario-sum-val" id="d-caixa" style="color:var(--text)">R$ 0</div>
+          </div>
+        </div>
+        <div class="diario-add-row">
+          <button class="diario-btn entrada" onclick="openDiarioModal('entrada')">+ Entrada</button>
+          <button class="diario-btn saida" onclick="openDiarioModal('saida')">− Saída</button>
+        </div>
+        <div style="padding:16px 20px 0">
+          <div class="caixa-history-title">Lançamentos</div>
+          <div id="diario-list"></div>
+        </div>
+      </div>
+
+      <!-- ── Tab: Dívidas ── -->
+      <div class="caixa-tab-content" id="tab-dividas">
+        <div style="padding:16px 20px 0">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div class="caixa-history-title" style="margin-bottom:0">Débitos</div>
+            <div onclick="addDivida()" style="font-size:13px;color:var(--p);font-weight:600;cursor:pointer">+ Adicionar</div>
+          </div>
+          <div id="dividas-list"></div>
+          <div class="caixa-history-title" style="margin-top:16px">Total em dívidas</div>
+          <div style="background:var(--white);border-radius:var(--r);padding:14px 16px;box-shadow:var(--sh);display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span style="font-size:14px;color:var(--muted)">Pendente</span>
+            <span style="font-size:18px;font-weight:800;color:var(--red)" id="dividas-total">R$ 0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Tab: Desejos ── -->
+      <div class="caixa-tab-content" id="tab-desejos">
+        <div style="padding:16px 20px 0">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div class="caixa-history-title" style="margin-bottom:0">Lista de Desejos</div>
+            <div onclick="addDesejo()" style="font-size:13px;color:var(--p);font-weight:600;cursor:pointer">+ Adicionar</div>
+          </div>
+          <div id="desejos-list"></div>
+        </div>
+      </div>
+
+      <!-- ── Tab: Investimentos ── -->
+      <div class="caixa-tab-content" id="tab-investimentos">
+        <div class="invest-total-card">
+          <div class="invest-total-label">Total investido</div>
+          <div class="invest-total-val" id="invest-total">R$ 0</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.7);margin-top:4px" id="invest-count">0 investimentos</div>
+        </div>
+        <div style="padding:16px 20px 0">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div class="caixa-history-title" style="margin-bottom:0">Investimentos</div>
+            <div onclick="addInvestimento()" style="font-size:13px;color:var(--p);font-weight:600;cursor:pointer">+ Adicionar</div>
+          </div>
+          <div id="invest-list"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Bottom Nav ── -->
+  <nav id="bottom-nav" style="display:none">
+    <div class="nav-item active" id="nav-home" onclick="goToScreen('s-home')" style="flex:1">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M3 12L12 3l9 9M5 10v9a1 1 0 001 1h4v-5h4v5h4a1 1 0 001-1v-9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Início</span>
+    </div>
+    <div class="nav-item" id="nav-lessons" onclick="goToScreen('s-lessons')" style="flex:1">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke-width="2"/><path d="M8 12h8M8 8h5M8 16h3" stroke-width="2" stroke-linecap="round"/></svg>
+      <span>Jornada</span>
+    </div>
+    <div class="nav-item" id="nav-caixa" onclick="goToScreen('s-caixa')" style="flex:1">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="7" width="20" height="14" rx="3" stroke-width="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2M12 12v4M10 14h4" stroke-width="2" stroke-linecap="round"/></svg>
+      <span>Caixa</span>
+    </div>
+    <div class="nav-item" id="nav-conquistas" onclick="goToScreen('s-conquistas')" style="flex:1">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M6 3H18M6 3c0 5 3 8 6 10C9 15 6 18 6 21M18 3c0 5-3 8-6 10 3 2 6 5 6 8M9 21h6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Conquistas</span>
+    </div>
+    <div class="nav-item" id="nav-profile" onclick="goToScreen('s-profile')" style="flex:1">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke-width="2" stroke-linecap="round"/></svg>
+      <span>Perfil</span>
+    </div>
+  </nav>
+
+  <!-- ── Modal: Criar Conquista ── -->
+  <div id="modal-conquista">
+    <div class="modal-backdrop" onclick="closeModal()"></div>
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-title">✨ Criar Conquista</div>
+      <div class="form-group">
+        <label class="form-label">Título da conquista</label>
+        <input class="form-input" id="ach-title-input" type="text" placeholder="Ex: Completar minha tese" maxlength="50">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descrição (opcional)</label>
+        <input class="form-input" id="ach-desc-input" type="text" placeholder="Por que esta conquista é importante?" maxlength="100">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Escolha um ícone</label>
+        <div class="emoji-grid" id="emoji-grid"></div>
+      </div>
+      <div class="modal-btns">
+        <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+        <button class="btn-save" onclick="saveAchievement()">Salvar Conquista</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal: Achievement Unlock ── -->
+  <div id="modal-unlock">
+    <div class="unlock-bg" onclick="closeUnlock()"></div>
+    <div class="unlock-card">
+      <div class="confetti-container" id="confetti-container"></div>
+      <span class="unlock-icon" id="unlock-icon">🏆</span>
+      <div class="unlock-title">CONQUISTA DESBLOQUEADA!</div>
+      <div class="unlock-name" id="unlock-name">Nome</div>
+      <div class="unlock-desc" id="unlock-desc">Descrição</div>
+      <button class="unlock-btn" onclick="closeUnlock()">Incrível! 🎉</button>
+    </div>
+  </div>
+
+  <!-- ── Modal: Registrar entrada ── -->
+  <div id="modal-fin" style="position:absolute;inset:0;z-index:300;display:flex;flex-direction:column;justify-content:flex-end;opacity:0;pointer-events:none;transition:opacity .3s">
+    <div class="modal-backdrop" onclick="closeFinModal()"></div>
+    <div class="modal-sheet" id="fin-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-title">💰 Registrar entrada</div>
+      <div class="form-group">
+        <label class="form-label">Valor recebido (R$)</label>
+        <input class="form-input" id="fin-value-input" type="number" placeholder="0,00" step="0.01" min="0" oninput="updateFinPreview()" style="font-size:24px;font-weight:800;text-align:center;letter-spacing:-1px">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descrição (opcional)</label>
+        <input class="form-input" id="fin-label-input" type="text" placeholder="Ex: Salário, venda, freelance..." maxlength="50">
+      </div>
+      <!-- Preview distribution -->
+      <label class="form-label">Distribuição automática</label>
+      <div id="fin-preview" style="background:var(--bg);border-radius:14px;padding:12px;margin-bottom:4px"></div>
+      <div class="modal-btns">
+        <button class="btn-cancel" onclick="closeFinModal()">Cancelar</button>
+        <button class="btn-save" onclick="confirmFinEntry()" style="background:linear-gradient(135deg,#22C55E,#16A34A);box-shadow:0 8px 24px rgba(34,197,94,.25)">Distribuir ✓</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal: Detalhe categoria ── -->
+  <div id="modal-cat" style="position:absolute;inset:0;z-index:300;display:flex;flex-direction:column;justify-content:flex-end;opacity:0;pointer-events:none;transition:opacity .3s">
+    <div class="modal-backdrop" onclick="closeCatModal()"></div>
+    <div class="modal-sheet" id="cat-sheet">
+      <div class="modal-handle"></div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+        <div id="cat-modal-icon" style="font-size:36px"></div>
+        <div>
+          <div id="cat-modal-name" style="font-size:18px;font-weight:800;color:var(--text)"></div>
+          <div id="cat-modal-pct" style="font-size:12px;color:var(--muted)"></div>
+        </div>
+      </div>
+      <div class="fin-cat-detail">
+        <div class="fin-cat-detail-row"><span class="fin-cat-detail-label">Saldo atual</span><span class="fin-cat-detail-val" id="cat-modal-bal" style="color:var(--green)">R$ 0</span></div>
+        <div class="fin-cat-detail-row"><span class="fin-cat-detail-label">Total recebido</span><span class="fin-cat-detail-val" id="cat-modal-total">R$ 0</span></div>
+        <div class="fin-cat-detail-row"><span class="fin-cat-detail-label">Total usado</span><span class="fin-cat-detail-val" id="cat-modal-spent">R$ 0</span></div>
+      </div>
+      <div class="form-group" style="margin-top:16px">
+        <label class="form-label">Registrar uso (R$)</label>
+        <input class="form-input" id="cat-spend-input" type="number" placeholder="0,00" step="0.01" min="0">
+      </div>
+      <div class="modal-btns">
+        <button class="btn-cancel" onclick="closeCatModal()">Fechar</button>
+        <button class="btn-save" onclick="spendFromCat()" style="background:linear-gradient(135deg,#EF4444,#DC2626);box-shadow:0 8px 24px rgba(239,68,68,.25)">Registrar uso</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal: Config percentuais ── -->
+  <div id="modal-pct" style="position:absolute;inset:0;z-index:300;display:flex;flex-direction:column;justify-content:flex-end;opacity:0;pointer-events:none;transition:opacity .3s">
+    <div class="modal-backdrop" onclick="closePctModal()"></div>
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+        <div class="modal-title" style="margin-bottom:0">⚙️ Ajustar distribuição</div>
+        <div id="pct-help-btn" onclick="togglePctHelp()" style="width:22px;height:22px;border-radius:50%;background:var(--p);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;cursor:pointer;flex-shrink:0;box-shadow:0 2px 8px rgba(91,110,248,.3)">?</div>
+      </div>
+      <div id="pct-help-msg" style="display:none;background:linear-gradient(135deg,#EEF0FF,#F5F3FF);border-left:3px solid var(--p);border-radius:0 12px 12px 0;padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--text);line-height:1.6">
+        📊 <strong>De acordo com estudos aprofundados, esta é a distribuição ideal para a criação de riqueza.</strong>
+      </div>
+      <div id="pct-form"></div>
+      <div class="fin-pct-total" id="pct-total-label" style="color:var(--green)">Total: 100%</div>
+      <div class="modal-btns">
+        <button class="btn-cancel" onclick="closePctModal()">Cancelar</button>
+        <button class="btn-save" onclick="savePct()" style="background:linear-gradient(135deg,#22C55E,#16A34A);box-shadow:0 8px 24px rgba(34,197,94,.25)">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal: Diário lançamento ── -->
+  <div id="modal-diario" style="position:absolute;inset:0;z-index:300;display:flex;flex-direction:column;justify-content:flex-end;opacity:0;pointer-events:none;transition:opacity .3s">
+    <div class="modal-backdrop" onclick="closeDiarioModal()"></div>
+    <div class="modal-sheet" id="diario-sheet" style="transform:translateY(100%)">
+      <div class="modal-handle"></div>
+      <div class="modal-title" id="diario-modal-title">📥 Entrada</div>
+      <div class="form-group">
+        <label class="form-label">O que é?</label>
+        <input class="form-input" id="diario-what" type="text" placeholder="Ex: Salário, venda, aluguel..." maxlength="50">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Valor (R$)</label>
+        <input class="form-input" id="diario-val" type="number" placeholder="0,00" step="0.01" min="0">
+      </div>
+      <div class="modal-btns">
+        <button class="btn-cancel" onclick="closeDiarioModal()">Cancelar</button>
+        <button class="btn-save" id="diario-save-btn" onclick="saveDiarioEntry()">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Toast ── -->
+  <div id="toast">✓ <span id="toast-msg">Salvo!</span></div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════
+const LESSONS = [
+  { id:1, title:'Um Ideal que Vale a Pena', sub:'Visão, crença e processo criativo', color:'#5B6EF8', module:'Metas',
+    steps:[
+      {icon:'💭', title:'Fantasia', desc:'Tudo começa como uma fantasia — um pensamento fora da realidade atual. Não filtre. Deixe a imaginação ir além.'},
+      {icon:'📋', title:'Teoria', desc:'A fantasia vira teoria quando você começa a planejar. É o ponto onde o invisível começa a tomar forma concreta.'},
+      {icon:'🏆', title:'Fato', desc:'A teoria vira fato pela ação persistente. Todo edifício, empresa ou conquista passou por esses três estágios.'},
+      {icon:'🎯', title:'Objetivos A, B e C', desc:'Objetivo A: já atingiu. Objetivo B: acredita que consegue. Objetivo C: parece impossível — mas é o que transforma.'},
+    ],
+    content:`<h3>O Que É um Ideal?</h3><p>Bob Proctor ensinava que para mudar resultados, primeiro você precisa de um ideal claro — algo que vale a pena buscar, que o faz saltar da cama de manhã.</p><h3>O Processo Criativo</h3><p>Todo resultado começa na Fantasia. Uma ideia que parece impossível. Com estudo e planejamento, vira Teoria. Com ação persistente, vira Fato.</p><blockquote>"Um ideal é como uma semente. Plante em sua mente com fé e regue com ação diária."</blockquote><h3>A Decisão</h3><p>A decisão é o momento em que você para de considerar e começa a agir. A decisão cria comprometimento. O comprometimento cria resultados.`
+  },
+  { id:2, title:'Entre Saber e Fazer', sub:'Paradigmas, consciência e persistência', color:'#3B82F6', module:'Ação',
+    steps:[
+      {icon:'🧩', title:'O Que São Paradigmas?', desc:'Paradigmas são programas mentais — coleções de hábitos gravados no subconsciente que controlam o seu comportamento automaticamente.'},
+      {icon:'🔄', title:'Saber vs Fazer', desc:'Você pode saber exatamente o que precisa fazer e ainda assim não fazer. O paradigma bloqueia a ação. Esta é a maior barreira ao sucesso.'},
+      {icon:'⚙️', title:'Consciência e Subconsciência', desc:'A mente consciente escolhe. A mente subconsciente executa. Para mudar, você precisa reprogramar o subconsciente através de repetição e emoção.'},
+      {icon:'💪', title:'Persistência É a Chave', desc:'Persistência não é força de vontade. É resultado de ter um ideal tão claro e tão importante que o "não" não é uma opção.'},
+    ],
+    content:`<h3>A Lacuna do Conhecimento</h3><p>Todos sabemos que devemos comer bem, exercitar, poupar dinheiro. A questão não é saber — é fazer. O que nos impede são os paradigmas.</p><h3>Reprogramando o Subconsciente</h3><p>Dois métodos principais: repetição constante de pensamentos novos, e impacto emocional intenso que cria novos padrões de uma só vez.</p><blockquote>"Você não consegue mudar o mundo externo sem mudar primeiro o mundo interno."</blockquote>`
+  },
+  { id:3, title:'A Sua Mente Infinita', sub:'O poder dos paradigmas corporativos e pessoais', color:'#8B5CF6', module:'Mentalidade',
+    steps:[
+      {icon:'🌐', title:'Paradigmas Definem Resultados', desc:'Seu resultado atual é o reflexo perfeito do seu paradigma atual. Para ter resultados diferentes, você precisa de paradigmas diferentes.'},
+      {icon:'🏢', title:'Cultura Corporativa', desc:'Em organizações, os paradigmas coletivos moldam a cultura. Um líder que muda seus paradigmas transforma toda a equipe ao redor.'},
+      {icon:'🎯', title:'Os 3 R\'s', desc:'Reconhecer → Repelir → Repetir o novo. Quando um pensamento limitante aparecer, reconheça, repila-o conscientemente, e repita o pensamento positivo.'},
+      {icon:'∞', title:'Mente Infinita', desc:'Você tem acesso a recursos infinitos. A limitação não é externa — ela está nos paradigmas que você carrega. Mude os paradigmas, mude a vida.'},
+    ],
+    content:`<h3>Responsabilidade Total</h3><p>Resultados são sempre sua responsabilidade. Isso não é culpa — é poder. Quando você aceita que criou os resultados atuais, aceita que pode criar resultados diferentes.</p><blockquote>"Ninguém pode me fazer sentir inferior sem minha permissão." — Eleanor Roosevelt</blockquote>`
+  },
+  { id:4, title:'O Gênio Secreto', sub:'O modelo De Var e as vibrations', color:'#EC4899', module:'Mentalidade',
+    steps:[
+      {icon:'🧬', title:'Modelo De Var', desc:'Você é composto de três partes: mente consciente (pensa), mente subconsciente (sente e armazena), e corpo (age). O subconsciente controla 95% do comportamento.'},
+      {icon:'⚡', title:'Vibração e Emoção', desc:'Todo pensamento cria uma frequência vibratória. Quando pensamento e emoção se alinham, você move seu corpo em direção ao resultado desejado.'},
+      {icon:'🔮', title:'Gênio Latente', desc:'Dentro de você existe uma capacidade extraordinária ainda não expressa. O que chamamos de "gênio" é apenas alguém que acessou mais do potencial infinito disponível a todos.'},
+      {icon:'💡', title:'As Regras para Ser Humano', desc:'A vida te dá lições. Quando você aprende a lição, o problema desaparece. Quando ignora, ele retorna mais forte até você aprender.'},
+    ],
+    content:`<h3>Mente Consciente</h3><p>Sua mente consciente pode aceitar ou rejeitar qualquer ideia. É o guardião. Use-a para selecionar pensamentos que alinhem com o que você deseja criar.</p><h3>Mente Subconsciente</h3><p>Não pode rejeitar nada. Aceita tudo que a mente consciente deixa passar. É aqui que residem seus hábitos, medos e crenças mais profundas.</p><blockquote>"Mude sua vibração, mude sua vida. Você literalmente se torna o que pensa."</blockquote>`
+  },
+  { id:5, title:'Permanecer no Poder', sub:'As 6 faculdades mentais superiores', color:'#10B981', module:'Mentalidade',
+    steps:[
+      {icon:'👁️', title:'Percepção', desc:'A realidade não é o que acontece — é como você percebe o que acontece. Mude sua percepção e mude sua experiência da realidade.'},
+      {icon:'🔍', title:'Foco', desc:'O que você foca cresce. Energia flui para onde a atenção vai. Pessoas de sucesso focam em soluções, não em problemas.'},
+      {icon:'💭', title:'Razão e Imaginação', desc:'A razão trabalha com o conhecido. A imaginação cria o desconhecido. Einstein disse: "A imaginação é mais importante que o conhecimento."'},
+      {icon:'🧠', title:'Memória e Intuição', desc:'Memória conecta padrões do passado. Intuição capta sinais do universo antes da mente racional processar. Aprenda a confiar em ambas.'},
+    ],
+    content:`<h3>As 6 Faculdades Superiores</h3><p>Percepção, Foco, Razão, Imaginação, Memória e Intuição. Animais possuem os 5 sentidos físicos. Humanos têm esses 6 poderes adicionais que, quando desenvolvidos, criam resultados extraordinários.</p><h3>Programação de Dentro para Fora</h3><p>A maioria é programada de fora para dentro — pelo ambiente, medo, outros. Líderes se programam de dentro para fora — pelo propósito, visão, escolha consciente.</p><blockquote>"Pensamento + Sentimento + Ação = Resultados"</blockquote>`
+  },
+  { id:6, title:'O Espelho do Entorno', sub:'Autoimagem e o ambiente como reflexo', color:'#06B6D4', module:'Emoções',
+    steps:[
+      {icon:'🪞', title:'Autoimagem (Maltz)', desc:'Dr. Maxwell Maltz descobriu que o maior cirurgião plástico é a mente. A imagem que você tem de si mesmo determina como você age e o que você alcança.'},
+      {icon:'🌍', title:'Entorno como Espelho', desc:'Seu ambiente externo — pessoas, finanças, saúde — é um reflexo perfeito do seu ambiente interno. Para mudar o espelho, mude o que está na frente dele.'},
+      {icon:'🎬', title:'O Filme da Vida', desc:'Escreva o roteiro do seu "filme" — a vida que você quer viver. Assista mentalmente todos os dias. Sua mente subconsciente não distingue o real do imaginado.'},
+      {icon:'✨', title:'Confiança Real', desc:'Confiança não é personalidade — é um estado mental que você pode desenvolver. Ela vem do autoconhecimento e da fé no seu potencial infinito.'},
+    ],
+    content:`<h3>Psycho-Cybernetics</h3><p>A autoimagem funciona como um termostato. Se você se vê valendo R$5 mil por mês, inconscientemente você sabotará qualquer ganho além disso. Eleve o termostato mental.</p><blockquote>"Você age de acordo com a imagem que tem de si mesmo. Mude a imagem, mude a vida."</blockquote>`
+  },
+  { id:7, title:'Superando a Barreira do Terror', sub:'Os 4 estágios da transformação', color:'#F59E0B', module:'Ação',
+    steps:[
+      {icon:'⛓️', title:'1 — Escravidão', desc:'Você ainda não sabe que existe um modo melhor. Aceita os resultados atuais como destino. A corrente é invisível porque você não viu outra realidade.'},
+      {icon:'💡', title:'2 — Razão', desc:'Você vê uma ideia nova (Y) mas continua preso no antigo padrão (X). O conhecimento existe, mas o paradigma ainda domina o comportamento.'},
+      {icon:'⚔️', title:'3 — Conflito', desc:'Este é o estágio mais importante e mais doloroso. X e Y lutam dentro de você. Sentir este conflito é SINAL de crescimento — não desista aqui.'},
+      {icon:'🦋', title:'4 — Liberdade', desc:'Você integra o novo padrão. O medo some. O novo comportamento vira o novo normal. Você chega ao outro lado da barreira do terror.'},
+    ],
+    content:`<h3>Por Que as Pessoas Param no Conflito</h3><p>99% das pessoas sentem o conflito e voltam para a segurança do familiar. Os 1% que persistem através do conflito chegam à liberdade. O conflito não é um sinal de que você está errado — é sinal de que está crescendo.</p><blockquote>"Coragem não é ausência de medo. É decidir que algo é mais importante do que o medo."</blockquote><h3>Ciclo Vicioso vs Virtuoso</h3><p>Ignorância → Crenças Limitantes → Comportamento Limitado → Resultados Limitados → confirma Ignorância. Quebre o ciclo com conhecimento e ação persistente.</p>`
+  },
+  { id:8, title:'O Poder da Prática', sub:'Integrando crença e comportamento', color:'#EF4444', module:'Ação',
+    steps:[
+      {icon:'🔁', title:'Repetição', desc:'O primeiro método de reprogramação. Qualquer comportamento repetido 21-66 dias consecutivos começa a se tornar hábito automático. Quantidade cria qualidade.'},
+      {icon:'⚡', title:'Impacto Emocional', desc:'O segundo método. Um evento com altíssima intensidade emocional pode mudar um paradigma instantaneamente. Por isso crises frequentemente transformam pessoas.'},
+      {icon:'🧩', title:'Prática = Crença + Comportamento', desc:'Praticar sem crença é mecânico e cansativo. Crer sem comportamento é fantasia. A prática real integra os dois — você faz porque acredita, e acredita porque faz.'},
+      {icon:'🌱', title:'Duas Grandes Mentiras', desc:'"Vou tentar" e "Vou fazer quando..." são as maiores armadilhas. Tentar não é fazer. E o momento perfeito nunca chega. A prática começa agora.'},
+    ],
+    content:`<h3>O Segredo da Consistência</h3><p>Não é motivação que cria resultados — é consistência. A motivação vai e vem. O hábito permanece. Bob Proctor estudou o mesmo livro por 50 anos porque sabia que a repetição aprofunda a compreensão.</p><blockquote>"Amadores praticam até acertar. Profissionais praticam até não poder errar."</blockquote>`
+  },
+  { id:9, title:'A Palavra Mágica', sub:'Atitude = Pensamento + Sentimento + Ação', color:'#D946EF', module:'Emoções',
+    steps:[
+      {icon:'🌡️', title:'Atitude', desc:'Atitude é a palavra mágica. Ela é a composição de seus pensamentos, sentimentos e ações. É a única coisa que você pode controlar completamente.'},
+      {icon:'☯️', title:'Lei da Polaridade', desc:'Tudo tem dois polos. Frio e quente são o mesmo fenômeno em graus diferentes. Ódio e amor são o mesmo. Você pode mudar qualquer pensamento negativo ao seu polo oposto.'},
+      {icon:'🎨', title:'Duas Pinceladas', desc:'Em qualquer crise, você tem uma escolha: a pincelada do pessimismo ou do otimismo. O quadro da sua vida é pintado pelas escolhas repetidas de perspectiva.'},
+      {icon:'🔆', title:'Atitude Constante', desc:'Pessoas de sucesso mantêm uma atitude positiva independentemente das circunstâncias. Não é negação — é escolha consciente de onde focar a atenção.'},
+    ],
+    content:`<h3>A Fórmula da Atitude</h3><p>Pensamento → Sentimento → Ação. Mude o pensamento e muda o sentimento. Mude o sentimento e muda a ação. Mude a ação e mudam os resultados.</p><blockquote>"A atitude determina a altitude."</blockquote><h3>Atitude nos Negócios</h3><p>Sua atitude é contagiante. Líderes com atitude positiva elevam toda a equipe. Líderes com atitude negativa drenam energia de todos. Escolha conscientemente.</p>`
+  },
+  { id:10, title:'A Pessoa de Maior Valor', sub:'Liderança criativa e crescimento contínuo', color:'#0EA5E9', module:'Metas',
+    steps:[
+      {icon:'👑', title:'Liderança Criativa', desc:'O líder criativo pensa além do que existe. Cria visões que ainda não existem. Inspira outros a ver uma realidade que ainda não manifestou.'},
+      {icon:'🔧', title:'Executor vs Líder', desc:'Executores resolvem problemas com métodos conhecidos. Líderes criam soluções que não existiam antes. Ambos são necessários — saiba quando ser cada um.'},
+      {icon:'📈', title:'Crescimento Contínuo', desc:'A pessoa de maior valor em qualquer organização é aquela que se compromete com crescimento contínuo. Estude 1 hora por dia e em 5 anos você será expert mundial em qualquer área.'},
+      {icon:'🎁', title:'Lei do Acréscimo', desc:'Sempre deixe todos com quem você interage com uma impressão de ganho. Dê mais do que lhe pedem. Seja a pessoa que eleva os outros.'},
+    ],
+    content:`<h3>O Denominador Comum do Sucesso</h3><p>Albert E.N. Gray descobriu após 30 anos de pesquisa: pessoas de sucesso têm o hábito de fazer coisas que pessoas de fracasso não gostam de fazer — mesmo que elas tampouco gostem.</p><blockquote>"O sucesso é o resultado de fazer habitualmente aquilo que as pessoas bem-sucedidas fazem."</blockquote>`
+  },
+  { id:11, title:'Sensação de Ganho', sub:'A lei do dar e a opulência do espírito', color:'#14B8A6', module:'Emoções',
+    steps:[
+      {icon:'🎁', title:'Dar Primeiro', desc:'A lei universal do dar e receber: o que você envia ao universo volta multiplicado. Dar de boa vontade abre canais de recebimento que o segurar fecha.'},
+      {icon:'💎', title:'Espírito de Opulência', desc:'Thomas Troward ensinou: pense em opulência — abundância genuína de espírito — mesmo antes de ver os resultados materiais. A abundância começa no pensamento.'},
+      {icon:'➕', title:'Impressão de Ganho', desc:'Em toda interação, deixe a pessoa com a sensação de que ganhou algo — conhecimento, energia, perspectiva, solução. Isso é liderança verdadeira.'},
+      {icon:'🔄', title:'Causa e Efeito', desc:'Cada ação tem uma reação equivalente. Ser generoso gera generosidade de volta. Ser mesquinho gera mesquinharia. Você literalmente cria o mundo que experimenta.'},
+    ],
+    content:`<h3>A Lei Universal</h3><p>Dar e receber são o mesmo movimento visto de ângulos diferentes. Quando você dá com alegria, você ativa o ciclo de abundância. Quando segura por medo, ativa o ciclo de escassez.</p><blockquote>"Pense em opulência; veja beleza e abundância em tudo. Expanda seu pensamento tanto quanto possível."— Thomas Troward</blockquote>`
+  },
+  { id:12, title:'Aumentando a Mente', sub:'Saltos quânticos e o poder do Mastermind', color:'#7C3AED', module:'Mentalidade',
+    steps:[
+      {icon:'🚀', title:'Saltos Quânticos', desc:'Price Pritchett: crescimento linear é lento e seguro. Crescimento quântico é exponencial e exige coragem. O salto quântico acontece quando você age antes de estar "pronto".'},
+      {icon:'🤝', title:'Mastermind', desc:'Napoleon Hill: "Quando duas ou mais mentes se unem em harmonia para atingir um objetivo definido, uma terceira mente surge — mais poderosa que a soma das partes."'},
+      {icon:'📜', title:'Os 7 Princípios', desc:'Confiança mútua, clareza de propósito, compromisso com o crescimento do grupo, comunicação honesta, diversidade de perspectivas, ação coordenada, celebração das vitórias.'},
+      {icon:'♾️', title:'Sua Mente Aumentada', desc:'Você sozinho é poderoso. Você com um grupo de mentes alinhadas é exponencialmente mais poderoso. Escolha suas alianças com sabedoria — elas definem seu destino.'},
+    ],
+    content:`<h3>Por Que o Mastermind Funciona</h3><p>Cada mente carrega padrões únicos de pensamento. Quando mentes se unem em torno de um propósito comum, os padrões se combinam e criam possibilidades que nenhuma das mentes sozinha poderia ver.</p><blockquote>"Rodeie-se de pessoas que inspiram você, porque serão elas que definem quem você se tornará."</blockquote><h3>Responsabilidade Compartilhada</h3><p>No Mastermind cada membro é responsável pelo sucesso dos outros. Esta responsabilidade compartilhada multiplica o comprometimento individual.</p>`
+  }
+];
+
+const ACHIEVEMENTS = [
+  // Lesson achievements
+  {id:'l01', title:'O Ideal', sub:'Completou a lição 1', icon:'🎯', lesson:1, color:'#5B6EF8'},
+  {id:'l02', title:'O Fazedor', sub:'Completou a lição 2', icon:'⚡', lesson:2, color:'#3B82F6'},
+  {id:'l03', title:'Mente Infinita', sub:'Completou a lição 3', icon:'🧠', lesson:3, color:'#8B5CF6'},
+  {id:'l04', title:'Gênio Secreto', sub:'Completou a lição 4', icon:'💡', lesson:4, color:'#EC4899'},
+  {id:'l05', title:'No Comando', sub:'Completou a lição 5', icon:'🎮', lesson:5, color:'#10B981'},
+  {id:'l06', title:'Espelho Vivo', sub:'Completou a lição 6', icon:'🪞', lesson:6, color:'#06B6D4'},
+  {id:'l07', title:'Conquistador', sub:'Completou a lição 7', icon:'🦋', lesson:7, color:'#F59E0B'},
+  {id:'l08', title:'Praticante', sub:'Completou a lição 8', icon:'💪', lesson:8, color:'#EF4444'},
+  {id:'l09', title:'Atitude Mágica', sub:'Completou a lição 9', icon:'✨', lesson:9, color:'#D946EF'},
+  {id:'l10', title:'Líder', sub:'Completou a lição 10', icon:'👑', lesson:10, color:'#0EA5E9'},
+  {id:'l11', title:'Doador', sub:'Completou a lição 11', icon:'🎁', lesson:11, color:'#14B8A6'},
+  {id:'l12', title:'Mestre', sub:'Completou todas as 12 lições', icon:'⭐', lesson:12, color:'#7C3AED'},
+  // Special
+  {id:'first_steps', title:'Primeiros Passos', sub:'Completou o onboarding', icon:'🚀', special:true, color:'#5B6EF8'},
+  {id:'dreamer', title:'Sonhador', sub:'Definiu seu maior sonho', icon:'💭', special:true, color:'#8B5CF6'},
+  {id:'halfway', title:'Na Metade', sub:'Completou 6 lições', icon:'🌗', special:true, color:'#F59E0B'},
+  {id:'streak3', title:'Consistente', sub:'3 dias consecutivos no app', icon:'🔥', special:true, color:'#EF4444'},
+  {id:'creator', title:'Criador', sub:'Criou sua primeira conquista', icon:'🎨', special:true, color:'#10B981'},
+  {id:'all_done', title:'Transformado', sub:'Completou todas as 12 lições', icon:'🌟', special:true, color:'#F59E0B'},
+];
+
+const EMOJI_OPTIONS = ['🎯','⭐','🏆','💡','🚀','💪','🧠','🔥','💎','🌟','✨','🦋','👑','💭','📚','🎨','🌱','⚡','🤝','💰','🏠','❤️','🎵','🌊'];
+
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+const FIN_CATS = [
+  { id:'despesas',   icon:'🏠', name:'Despesas',   color:'#EF4444', bg:'#FEF2F2', pctKey:'pct_despesas'   },
+  { id:'presentes',  icon:'🎁', name:'Presentes',  color:'#EC4899', bg:'#FDF2F8', pctKey:'pct_presentes'  },
+  { id:'guardar',    icon:'💰', name:'Guardar',    color:'#22C55E', bg:'#F0FFF4', pctKey:'pct_guardar'    },
+  { id:'habilidades',icon:'📚', name:'Habilidades',color:'#3B82F6', bg:'#EFF6FF', pctKey:'pct_habilidades'},
+  { id:'sonhos',     icon:'💭', name:'Sonhos',     color:'#7C3AED', bg:'#F5F3FF', pctKey:'pct_sonhos'     },
+  { id:'livre',      icon:'🎉', name:'Livre',      color:'#F59E0B', bg:'#FFFBEB', pctKey:'pct_livre'      },
+];
+const DEFAULT_PCTS = { despesas:55, presentes:5, guardar:10, habilidades:10, sonhos:10, livre:10 };
+
+let state = {
+  user: { name:'', dream:'', focus:'Mentalidade' },
+  completedLessons: [],
+  unlockedAchievements: [],
+  customAchievements: [],
+  streak: 0,
+  lastLogin: null,
+  onboardingDone: false,
+  // Financial
+  fin: {
+    pcts: {...DEFAULT_PCTS},
+    balances: { despesas:0, presentes:0, guardar:0, habilidades:0, sonhos:0, livre:0 },
+    totals:   { despesas:0, presentes:0, guardar:0, habilidades:0, sonhos:0, livre:0 },
+    spent:    { despesas:0, presentes:0, guardar:0, habilidades:0, sonhos:0, livre:0 },
+    entries: [],       // [{date, label, amount, splits}]
+    grandTotal: 0,
+  },
+};
+
+let currentScreen = 's-home';
+let obStep = 0;
+let selectedModule = 'Mentalidade';
+let selectedEmoji = '🎯';
+let currentLessonId = null;
+let tutStep = 0;
+let pendingUnlocks = [];
+
+// ═══════════════════════════════════════
+// STORAGE
+// ═══════════════════════════════════════
+function save() {
+  try { localStorage.setItem('lifeup_state', JSON.stringify(state)); } catch(e) {}
+}
+function load() {
+  try {
+    const d = localStorage.getItem('lifeup_state');
+    if (d) {
+      const saved = JSON.parse(d);
+      state = {...state, ...saved};
+      // Ensure fin object has all keys (backward compat)
+      if (!state.fin) state.fin = { pcts:{...DEFAULT_PCTS}, balances:{}, totals:{}, spent:{}, entries:[], grandTotal:0 };
+      if (!state.fin.pcts) state.fin.pcts = {...DEFAULT_PCTS};
+      FIN_CATS.forEach(c => {
+        if (state.fin.balances[c.id]==null) state.fin.balances[c.id]=0;
+        if (state.fin.totals[c.id]==null)   state.fin.totals[c.id]=0;
+        if (state.fin.spent[c.id]==null)     state.fin.spent[c.id]=0;
+      });
+      if (!state.fin.diario) state.fin.diario = [];
+      if (!state.fin.dividas) state.fin.dividas = JSON.parse(JSON.stringify(DEFAULT_DIVIDAS));
+      if (!state.fin.desejos) state.fin.desejos = JSON.parse(JSON.stringify(DEFAULT_DESEJOS));
+      if (!state.fin.investimentos) state.fin.investimentos = JSON.parse(JSON.stringify(DEFAULT_INVEST));
+    }
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+function init() {
+  load();
+  updateStreak();
+  if (state.onboardingDone) {
+    showMain();
+  } else {
+    showScreen('s-onboard');
+  }
+  buildEmojiGrid();
+}
+
+function updateStreak() {
+  const today = new Date().toDateString();
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+  if (!state.lastLogin) {
+    state.streak = 1;
+    state.lastLogin = today;
+  } else if (state.lastLogin === today) {
+    // same day, no change
+  } else if (state.lastLogin === yesterday) {
+    state.streak = (state.streak || 0) + 1;
+    state.lastLogin = today;
+  } else {
+    state.streak = 1;
+    state.lastLogin = today;
+  }
+  if (state.streak >= 3 && !state.unlockedAchievements.includes('streak3')) {
+    state.unlockedAchievements.push('streak3');
+    pendingUnlocks.push('streak3');
+  }
+  save();
+}
+
+function showMain() {
+  document.getElementById('bottom-nav').style.display = 'flex';
+  goToScreen('s-home');
+  refreshDashboard();
+}
+
+// ═══════════════════════════════════════
+// SCREEN NAVIGATION
+// ═══════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active','slide-left');
+  });
+  const target = document.getElementById(id);
+  if (target) target.classList.add('active');
+  currentScreen = id;
+}
+
+function goToScreen(id) {
+  const prev = document.getElementById(currentScreen);
+  if (prev && currentScreen !== id) {
+    prev.classList.remove('active');
+    if (['s-home','s-lessons','s-conquistas','s-profile'].includes(currentScreen)) {
+      prev.classList.add('slide-left');
+      setTimeout(() => prev.classList.remove('slide-left'), 400);
+    }
+  }
+  const next = document.getElementById(id);
+  if (next) {
+    setTimeout(() => {
+      next.classList.add('active');
+    }, currentScreen === id ? 0 : 50);
+  }
+  currentScreen = id;
+  // Update nav
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const navMap = {'s-home':'nav-home','s-lessons':'nav-lessons','s-conquistas':'nav-conquistas','s-profile':'nav-profile','s-caixa':'nav-caixa'};
+  if (navMap[id]) document.getElementById(navMap[id]).classList.add('active');
+  // Refresh content
+  if (id === 's-home') refreshDashboard();
+  if (id === 's-conquistas') refreshConquistas();
+  if (id === 's-lessons') refreshLessons();
+  if (id === 's-profile') refreshProfile();
+  if (id === 's-caixa') refreshCaixa();
+}
+
+// ═══════════════════════════════════════
+// ONBOARDING
+// ═══════════════════════════════════════
+function obNext() {
+  if (obStep === 0) {
+    goToObStep(1);
+  } else if (obStep === 1) {
+    const name = document.getElementById('input-name').value.trim();
+    if (!name) { showToast('Por favor, insira seu nome 😊'); return; }
+    state.user.name = name;
+    goToObStep(2);
+  } else if (obStep === 2) {
+    const dream = document.getElementById('input-dream').value.trim();
+    if (!dream) { showToast('Conte-nos o seu sonho! 💭'); return; }
+    state.user.dream = dream;
+    goToObStep(3);
+    document.getElementById('ob-next-btn').textContent = 'Começar minha jornada 🚀';
+  } else if (obStep === 3) {
+    if (!selectedModule) { showToast('Escolha uma área de foco'); return; }
+    state.user.focus = selectedModule;
+    state.onboardingDone = true;
+    if (!state.unlockedAchievements.includes('first_steps')) {
+      state.unlockedAchievements.push('first_steps');
+      pendingUnlocks.push('first_steps');
+    }
+    if (!state.unlockedAchievements.includes('dreamer')) {
+      state.unlockedAchievements.push('dreamer');
+      pendingUnlocks.push('dreamer');
+    }
+    save();
+    showMain();
+    setTimeout(() => processPendingUnlocks(), 800);
+  }
+}
+
+function goToObStep(step) {
+  document.getElementById('ob' + obStep).classList.remove('active');
+  document.getElementById('ob' + obStep).classList.add('exit');
+  setTimeout(() => { document.getElementById('ob' + obStep).classList.remove('exit'); }, 500);
+  obStep = step;
+  document.getElementById('ob' + obStep).classList.add('active');
+  document.querySelectorAll('.ob-dot').forEach((d,i) => {
+    d.classList.toggle('active', i === obStep);
+  });
+  if (obStep < 3) document.getElementById('ob-next-btn').textContent = 'Próximo →';
+}
+
+function selectModule(mod) {
+  selectedModule = mod;
+  document.querySelectorAll('.ob-mod').forEach(m => m.classList.remove('selected'));
+  document.getElementById('mod-' + mod).classList.add('selected');
+}
+
+function skipOnboarding() {
+  state.user.name = 'Explorador';
+  state.user.dream = 'Realizar meu máximo potencial';
+  state.user.focus = 'Mentalidade';
+  state.onboardingDone = true;
+  if (!state.unlockedAchievements.includes('first_steps')) {
+    state.unlockedAchievements.push('first_steps');
+  }
+  save();
+  showMain();
+}
+
+function showOnboarding() {
+  obStep = 0;
+  document.querySelectorAll('.ob-slide').forEach(s => s.classList.remove('active','exit'));
+  document.getElementById('ob0').classList.add('active');
+  document.querySelectorAll('.ob-dot').forEach((d,i) => d.classList.toggle('active', i===0));
+  document.getElementById('ob-next-btn').textContent = 'Começar →';
+  document.getElementById('s-onboard').classList.add('active');
+  document.getElementById('bottom-nav').style.display = 'none';
+}
+
+// ═══════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════
+function refreshDashboard() {
+  const done = state.completedLessons.length;
+  const total = LESSONS.length;
+  const pct = Math.round((done/total)*100);
+
+  // Greet
+  const h = new Date().getHours();
+  const greet = h < 12 ? 'Bom dia ☀️' : h < 18 ? 'Boa tarde 🌤️' : 'Boa noite 🌙';
+  document.getElementById('dash-greet').textContent = greet;
+  document.getElementById('dash-name').textContent = state.user.name || 'Seja bem-vindo!';
+  document.getElementById('streak-count').textContent = state.streak || 0;
+
+  // Progress ring
+  const circumference = 2 * Math.PI * 38;
+  const offset = circumference - (pct/100) * circumference;
+  document.getElementById('progress-circle').style.strokeDashoffset = offset;
+  document.getElementById('pct-num').textContent = pct + '%';
+
+  // Hero text
+  const nextLesson = LESSONS.find(l => !state.completedLessons.includes(l.id));
+  if (nextLesson) {
+    document.getElementById('hero-title').textContent = 'Lição ' + nextLesson.id + ': ' + nextLesson.title;
+    document.getElementById('hero-sub').textContent = nextLesson.sub;
+  } else {
+    document.getElementById('hero-title').textContent = '🎉 Jornada completa!';
+    document.getElementById('hero-sub').textContent = 'Você completou todas as 12 lições!';
+  }
+  document.getElementById('hero-lessons-count').textContent = done + '/' + total;
+  document.getElementById('hero-ach-count').textContent = state.unlockedAchievements.length + state.customAchievements.length;
+
+  // Achievement chips
+  const achContainer = document.getElementById('ach-preview');
+  achContainer.innerHTML = '';
+  const toShow = ACHIEVEMENTS.slice(0,8);
+  toShow.forEach(a => {
+    const earned = isAchievementEarned(a);
+    const chip = document.createElement('div');
+    chip.className = 'ach-chip' + (earned ? '' : ' locked');
+    chip.innerHTML = `<span class="ach-icon">${a.icon}</span><span class="ach-name">${a.title}</span>${earned ? '' : '<span class="ach-lock">🔒</span>'}`;
+    chip.onclick = () => goToScreen('s-conquistas');
+    achContainer.appendChild(chip);
+  });
+
+  // Lessons preview (next 3)
+  const container = document.getElementById('lessons-preview');
+  container.innerHTML = '';
+  const nextLessons = LESSONS.filter(l => !state.completedLessons.includes(l.id)).slice(0,3);
+  const doneLessons = LESSONS.filter(l => state.completedLessons.includes(l.id)).slice(-1);
+  const previewList = [...doneLessons, ...nextLessons].slice(0,4);
+  previewList.forEach(l => {
+    const done2 = state.completedLessons.includes(l.id);
+    const card = document.createElement('div');
+    card.className = 'lesson-card' + (done2 ? ' done' : '');
+    card.innerHTML = `
+      <div class="lesson-num" style="background:${l.color}20;color:${l.color}">L${String(l.id).padStart(2,'0')}</div>
+      <div class="lesson-info">
+        <div class="lesson-card-title">${l.title}</div>
+        <div class="lesson-card-sub">${l.sub}</div>
+      </div>
+      <div class="lesson-status">${done2 ? '✅' : '▶️'}</div>
+    `;
+    card.onclick = () => openLesson(l.id);
+    container.appendChild(card);
+  });
+}
+
+// ═══════════════════════════════════════
+// LESSONS
+// ═══════════════════════════════════════
+function refreshLessons() {
+  const container = document.getElementById('lessons-full-list');
+  container.innerHTML = '';
+  LESSONS.forEach(l => {
+    const done = state.completedLessons.includes(l.id);
+    const card = document.createElement('div');
+    card.className = 'lesson-full-card' + (done ? ' done' : '');
+    card.innerHTML = `
+      <div class="lesson-full-num" style="background:${l.color}">${l.id}</div>
+      <div class="lesson-full-info">
+        <div class="lesson-full-title">${l.title}</div>
+        <div class="lesson-full-sub">${l.sub}</div>
+      </div>
+      <div class="lesson-full-status">${done ? '✅' : '▶️'}</div>
+    `;
+    card.onclick = () => openLesson(l.id);
+    container.appendChild(card);
+  });
+}
+
+function openLesson(id) {
+  currentLessonId = id;
+  tutStep = 0;
+  const lesson = LESSONS.find(l => l.id === id);
+  if (!lesson) return;
+
+  // Header
+  document.getElementById('lesson-d-title').textContent = lesson.title;
+  const badge = document.getElementById('lesson-d-badge');
+  badge.textContent = 'L' + String(id).padStart(2,'0');
+  badge.style.background = lesson.color;
+
+  // Hero illustration (gradient + number)
+  const illus = document.getElementById('lesson-d-illus');
+  illus.style.background = `linear-gradient(135deg, ${lesson.color}22, ${lesson.color}44)`;
+  illus.innerHTML = `
+    <svg width="200" height="180" viewBox="0 0 200 180" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="ilg${id}" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" style="stop-color:${lesson.color};stop-opacity:.3"/>
+          <stop offset="100%" style="stop-color:${lesson.color};stop-opacity:.05"/>
+        </radialGradient>
+      </defs>
+      <circle cx="100" cy="90" r="75" fill="url(#ilg${id})"/>
+      <circle cx="100" cy="90" r="55" fill="${lesson.color}" opacity=".12"/>
+      <circle cx="100" cy="90" r="38" fill="${lesson.color}" opacity=".2" style="animation:float 3s ease-in-out infinite"/>
+      <text x="100" y="105" text-anchor="middle" fill="${lesson.color}" font-size="42" font-weight="900" font-family="Inter,sans-serif" opacity=".9">${lesson.steps[0].icon}</text>
+    </svg>
+  `;
+
+  // Tutorial
+  renderTutStep(lesson);
+
+  // Content
+  document.getElementById('lesson-d-content').innerHTML = lesson.content;
+
+  // Complete button
+  const btn = document.getElementById('lesson-complete-btn');
+  if (state.completedLessons.includes(id)) {
+    btn.textContent = '✅ Lição concluída!';
+    btn.classList.add('done');
+  } else {
+    btn.textContent = '✓ Marcar como concluída';
+    btn.classList.remove('done');
+  }
+
+  // Show lesson screen
+  const prev = document.getElementById(currentScreen);
+  if (prev) prev.classList.remove('active');
+  document.getElementById('s-lesson').classList.add('active');
+  const prevScreen = currentScreen;
+  currentScreen = 's-lesson';
+  document.getElementById('s-lesson').dataset.prevScreen = prevScreen;
+}
+
+function renderTutStep(lesson) {
+  if (!lesson) return;
+  const step = lesson.steps[tutStep];
+  document.getElementById('tut-icon').textContent = step.icon;
+  document.getElementById('tut-title').textContent = step.title;
+  document.getElementById('tut-desc').textContent = step.desc;
+
+  const dots = document.getElementById('tut-dots');
+  dots.innerHTML = '';
+  lesson.steps.forEach((_,i) => {
+    const d = document.createElement('div');
+    d.className = 'tutorial-step-dot' + (i === tutStep ? ' active' : '');
+    dots.appendChild(d);
+  });
+
+  document.getElementById('tut-prev').disabled = tutStep === 0;
+  const nextBtn = document.getElementById('tut-next');
+  nextBtn.textContent = tutStep === lesson.steps.length-1 ? 'Concluir tutorial' : 'Próximo →';
+  nextBtn.disabled = false;
+}
+
+function tutNext() {
+  const lesson = LESSONS.find(l => l.id === currentLessonId);
+  if (!lesson) return;
+  if (tutStep < lesson.steps.length - 1) {
+    tutStep++;
+    renderTutStep(lesson);
+  }
+}
+function tutPrev() {
+  const lesson = LESSONS.find(l => l.id === currentLessonId);
+  if (!lesson) return;
+  if (tutStep > 0) {
+    tutStep--;
+    renderTutStep(lesson);
+  }
+}
+
+function closeLesson() {
+  document.getElementById('s-lesson').classList.remove('active');
+  const prev = document.getElementById('s-lesson').dataset.prevScreen || 's-home';
+  document.getElementById(prev).classList.add('active');
+  currentScreen = prev;
+}
+
+function completeLesson() {
+  if (!currentLessonId) return;
+  if (state.completedLessons.includes(currentLessonId)) return;
+
+  state.completedLessons.push(currentLessonId);
+
+  // Unlock lesson achievement
+  const achId = 'l' + String(currentLessonId).padStart(2,'0');
+  if (!state.unlockedAchievements.includes(achId)) {
+    state.unlockedAchievements.push(achId);
+    pendingUnlocks.push(achId);
+  }
+
+  // Check halfway
+  if (state.completedLessons.length >= 6 && !state.unlockedAchievements.includes('halfway')) {
+    state.unlockedAchievements.push('halfway');
+    pendingUnlocks.push('halfway');
+  }
+
+  // Check all done
+  if (state.completedLessons.length >= 12 && !state.unlockedAchievements.includes('all_done')) {
+    state.unlockedAchievements.push('all_done');
+    pendingUnlocks.push('all_done');
+  }
+
+  save();
+
+  const btn = document.getElementById('lesson-complete-btn');
+  btn.textContent = '✅ Lição concluída!';
+  btn.classList.add('done');
+
+  setTimeout(() => processPendingUnlocks(), 400);
+}
+
+// ═══════════════════════════════════════
+// CONQUISTAS
+// ═══════════════════════════════════════
+function isAchievementEarned(a) {
+  if (a.lesson) return state.completedLessons.includes(a.lesson);
+  return state.unlockedAchievements.includes(a.id);
+}
+
+function refreshConquistas() {
+  const earned = ACHIEVEMENTS.filter(a => isAchievementEarned(a)).length + state.customAchievements.length;
+  document.getElementById('ach-summary-label').textContent = earned + ' conquistas desbloqueadas';
+
+  // Lessons grid
+  const lg = document.getElementById('conquistas-lessons-grid');
+  lg.innerHTML = '';
+  ACHIEVEMENTS.filter(a => a.lesson).forEach(a => {
+    lg.appendChild(makeBadgeCard(a));
+  });
+
+  // Special grid
+  const sg = document.getElementById('conquistas-special-grid');
+  sg.innerHTML = '';
+  ACHIEVEMENTS.filter(a => a.special).forEach(a => {
+    sg.appendChild(makeBadgeCard(a));
+  });
+
+  // Custom grid
+  const cg = document.getElementById('conquistas-custom-grid');
+  cg.innerHTML = '';
+  state.customAchievements.forEach(a => {
+    const card = document.createElement('div');
+    card.className = 'badge-card earned';
+    card.innerHTML = `
+      <div class="badge-glow" style="background:${a.color || '#5B6EF8'}"></div>
+      <div class="badge-icon-wrap">${a.icon}</div>
+      <div class="badge-title">${a.title}</div>
+      <div class="badge-sub">${a.desc || 'Meta pessoal'}</div>
+      <div class="badge-status">✓ Criada</div>
+    `;
+    cg.appendChild(card);
+  });
+  const addBtn = document.createElement('div');
+  addBtn.className = 'badge-card custom-badge-card';
+  addBtn.onclick = openModal;
+  addBtn.style.display = 'flex';
+  addBtn.style.flexDirection = 'column';
+  addBtn.style.alignItems = 'center';
+  addBtn.style.justifyContent = 'center';
+  addBtn.style.minHeight = '100px';
+  addBtn.style.opacity = '1';
+  addBtn.innerHTML = '<div style="font-size:32px;margin-bottom:8px">➕</div><div style="font-size:13px;font-weight:600;color:var(--muted)">Nova</div>';
+  cg.appendChild(addBtn);
+}
+
+function makeBadgeCard(a) {
+  const earned = isAchievementEarned(a);
+  const card = document.createElement('div');
+  card.className = 'badge-card' + (earned ? ' earned' : ' locked');
+  card.innerHTML = `
+    <div class="badge-glow" style="background:${a.color}"></div>
+    <div class="badge-icon-wrap">${earned ? a.icon : '🔒'}</div>
+    <div class="badge-title">${a.title}</div>
+    <div class="badge-sub">${a.sub}</div>
+    <div class="badge-status">${earned ? '✓ Desbloqueada' : 'Bloqueada'}</div>
+  `;
+  return card;
+}
+
+// ═══════════════════════════════════════
+// PROFILE
+// ═══════════════════════════════════════
+function refreshProfile() {
+  document.getElementById('profile-name').textContent = state.user.name || 'Usuário';
+  document.getElementById('profile-dream').textContent = '"' + (state.user.dream || 'Meu maior sonho...') + '"';
+  document.getElementById('stat-lessons').textContent = state.completedLessons.length;
+  document.getElementById('stat-streak').textContent = state.streak || 0;
+  document.getElementById('stat-ach').textContent = state.unlockedAchievements.length + state.customAchievements.length;
+}
+
+function resetApp() {
+  if (confirm('Isso vai apagar todo o seu progresso. Tem certeza?')) {
+    localStorage.removeItem('lifeup_state');
+    location.reload();
+  }
+}
+
+// ═══════════════════════════════════════
+// MODAL: CRIAR CONQUISTA
+// ═══════════════════════════════════════
+function buildEmojiGrid() {
+  const grid = document.getElementById('emoji-grid');
+  EMOJI_OPTIONS.forEach(e => {
+    const opt = document.createElement('div');
+    opt.className = 'emoji-opt' + (e === selectedEmoji ? ' selected' : '');
+    opt.textContent = e;
+    opt.onclick = () => {
+      document.querySelectorAll('.emoji-opt').forEach(o => o.classList.remove('selected'));
+      opt.classList.add('selected');
+      selectedEmoji = e;
+    };
+    grid.appendChild(opt);
+  });
+}
+
+function openModal() {
+  document.getElementById('modal-conquista').classList.add('active');
+  document.getElementById('ach-title-input').value = '';
+  document.getElementById('ach-desc-input').value = '';
+  document.getElementById('ach-title-input').focus();
+}
+
+function closeModal() {
+  document.getElementById('modal-conquista').classList.remove('active');
+}
+
+function saveAchievement() {
+  const title = document.getElementById('ach-title-input').value.trim();
+  if (!title) { showToast('Dê um nome à sua conquista'); return; }
+  const desc = document.getElementById('ach-desc-input').value.trim();
+  const custom = { id: 'custom_' + Date.now(), title, desc, icon: selectedEmoji, color: '#5B6EF8', custom: true };
+  state.customAchievements.push(custom);
+  if (!state.unlockedAchievements.includes('creator')) {
+    state.unlockedAchievements.push('creator');
+    pendingUnlocks.push('creator');
+  }
+  save();
+  closeModal();
+  showToast('Conquista criada! ' + selectedEmoji);
+  refreshConquistas();
+  refreshDashboard();
+  setTimeout(() => processPendingUnlocks(), 600);
+}
+
+// ═══════════════════════════════════════
+// ACHIEVEMENT UNLOCK
+// ═══════════════════════════════════════
+function processPendingUnlocks() {
+  if (pendingUnlocks.length === 0) return;
+  const id = pendingUnlocks.shift();
+  const ach = ACHIEVEMENTS.find(a => a.id === id);
+  if (ach) showUnlock(ach, () => setTimeout(processPendingUnlocks, 300));
+}
+
+function showUnlock(ach, callback) {
+  document.getElementById('unlock-icon').textContent = ach.icon;
+  document.getElementById('unlock-name').textContent = ach.title;
+  document.getElementById('unlock-desc').textContent = ach.sub;
+  document.getElementById('modal-unlock').classList.add('active');
+  spawnConfetti();
+  if (callback) {
+    document.getElementById('modal-unlock').dataset.callback = '';
+    document.getElementById('modal-unlock')._callback = callback;
+  }
+}
+
+function closeUnlock() {
+  document.getElementById('modal-unlock').classList.remove('active');
+  const cb = document.getElementById('modal-unlock')._callback;
+  if (cb) { document.getElementById('modal-unlock')._callback = null; cb(); }
+  refreshDashboard();
+  refreshConquistas();
+}
+
+function spawnConfetti() {
+  const container = document.getElementById('confetti-container');
+  container.innerHTML = '';
+  const colors = ['#5B6EF8','#F59E0B','#22C55E','#EC4899','#06B6D4','#EF4444'];
+  for (let i = 0; i < 16; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti-piece';
+    p.style.cssText = `
+      left:${10+Math.random()*80}%;
+      top:${Math.random()*40}%;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      animation-delay:${Math.random()*.5}s;
+      animation-duration:${.8+Math.random()*.8}s;
+      transform:rotate(${Math.random()*360}deg);
+      width:${6+Math.random()*8}px;
+      height:${6+Math.random()*8}px;
+    `;
+    container.appendChild(p);
+  }
+}
+
+// ═══════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════
+let toastTimer;
+function showToast(msg) {
+  document.getElementById('toast-msg').textContent = msg;
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ═══════════════════════════════════════
+// CAIXA — FINANCIAL ORGANIZER
+// ═══════════════════════════════════════
+function fmtBRL(val) {
+  return 'R$ ' + Number(val).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+function refreshCaixa() {
+  const fin = state.fin;
+  const grandTotal = fin.grandTotal || 0;
+  document.getElementById('caixa-total').textContent = fmtBRL(grandTotal);
+  const n = fin.entries.length;
+  document.getElementById('caixa-entries-count').textContent = n === 0 ? 'Nenhuma entrada ainda' : `${n} entrada${n>1?'s':''} registrada${n>1?'s':''}`;
+
+  // Category cards
+  const grid = document.getElementById('caixa-categories');
+  grid.innerHTML = '';
+  FIN_CATS.forEach(cat => {
+    const bal = fin.balances[cat.id] || 0;
+    const tot = fin.totals[cat.id] || 0;
+    const pct = fin.pcts[cat.id] || 0;
+    const barW = grandTotal > 0 ? Math.min(100, (tot / grandTotal) * 100) : 0;
+    const card = document.createElement('div');
+    card.className = 'caixa-cat';
+    card.innerHTML = `
+      <div class="caixa-cat-top">
+        <span class="caixa-cat-icon">${cat.icon}</span>
+        <span class="caixa-cat-pct" style="background:${cat.color}18;color:${cat.color}">${pct}%</span>
+      </div>
+      <div class="caixa-cat-name">${cat.name}</div>
+      <div class="caixa-cat-val" style="color:${cat.color}">${fmtBRL(bal)}</div>
+      <div class="caixa-cat-bar-wrap"><div class="caixa-cat-bar" style="width:${barW}%;background:${cat.color}"></div></div>
+    `;
+    card.onclick = () => openCatModal(cat.id);
+    grid.appendChild(card);
+  });
+
+  // History
+  const hist = document.getElementById('caixa-history-list');
+  if (fin.entries.length === 0) {
+    hist.innerHTML = '<div class="caixa-empty">📭 Nenhuma entrada registrada ainda.<br>Toque em <strong>Registrar</strong> para começar.</div>';
+  } else {
+    hist.innerHTML = '';
+    [...fin.entries].reverse().forEach(e => {
+      const div = document.createElement('div');
+      div.className = 'caixa-entry';
+      div.innerHTML = `
+        <div class="caixa-entry-icon" style="background:#F0FFF4">💵</div>
+        <div class="caixa-entry-info">
+          <div class="caixa-entry-label">${e.label || 'Entrada'}</div>
+          <div class="caixa-entry-date">${e.date}</div>
+        </div>
+        <div class="caixa-entry-val">${fmtBRL(e.amount)}</div>
+      `;
+      hist.appendChild(div);
+    });
+  }
+}
+
+// ── Modal: Registrar entrada ──
+let finModalActive = false;
+function openFinModal() {
+  document.getElementById('fin-value-input').value = '';
+  document.getElementById('fin-label-input').value = '';
+  document.getElementById('fin-preview').innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:8px 0">Digite um valor para ver a distribuição</div>';
+  const m = document.getElementById('modal-fin');
+  m.style.opacity = '1';
+  m.style.pointerEvents = 'all';
+  document.getElementById('fin-sheet').style.transform = 'none';
+  document.getElementById('fin-value-input').focus();
+  finModalActive = true;
+}
+function closeFinModal() {
+  const m = document.getElementById('modal-fin');
+  document.getElementById('fin-sheet').style.transform = 'translateY(100%)';
+  setTimeout(() => { m.style.opacity='0'; m.style.pointerEvents='none'; }, 380);
+  finModalActive = false;
+}
+
+function updateFinPreview() {
+  const raw = parseFloat(document.getElementById('fin-value-input').value) || 0;
+  const preview = document.getElementById('fin-preview');
+  if (raw <= 0) {
+    preview.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:8px 0">Digite um valor para ver a distribuição</div>';
+    return;
+  }
+  let html = '';
+  FIN_CATS.forEach(cat => {
+    const pct = state.fin.pcts[cat.id] || 0;
+    const val = (raw * pct / 100);
+    html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 4px;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:16px">${cat.icon}</span>
+        <span style="font-size:13px;font-weight:600;color:var(--text)">${cat.name}</span>
+        <span style="font-size:11px;color:${cat.color};font-weight:700;background:${cat.color}18;padding:2px 7px;border-radius:20px">${pct}%</span>
+      </div>
+      <span style="font-size:14px;font-weight:800;color:${cat.color}">${fmtBRL(val)}</span>
+    </div>`;
+  });
+  preview.innerHTML = html;
+}
+
+function confirmFinEntry() {
+  const amount = parseFloat(document.getElementById('fin-value-input').value) || 0;
+  if (amount <= 0) { showToast('Digite um valor válido'); return; }
+  const label = document.getElementById('fin-label-input').value.trim() || 'Entrada';
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('pt-BR', {day:'2-digit', month:'short', year:'numeric'});
+  const splits = {};
+  FIN_CATS.forEach(cat => {
+    const pct = state.fin.pcts[cat.id] || 0;
+    const val = amount * pct / 100;
+    splits[cat.id] = val;
+    state.fin.balances[cat.id] = (state.fin.balances[cat.id] || 0) + val;
+    state.fin.totals[cat.id] = (state.fin.totals[cat.id] || 0) + val;
+  });
+  state.fin.grandTotal = (state.fin.grandTotal || 0) + amount;
+  state.fin.entries.push({ date: dateStr, label, amount, splits });
+  save();
+  closeFinModal();
+  refreshCaixa();
+  showToast('💰 ' + fmtBRL(amount) + ' distribuído!');
+}
+
+// ── Modal: Detalhe categoria ──
+let activeCatId = null;
+function openCatModal(catId) {
+  activeCatId = catId;
+  const cat = FIN_CATS.find(c => c.id === catId);
+  const fin = state.fin;
+  document.getElementById('cat-modal-icon').textContent = cat.icon;
+  document.getElementById('cat-modal-name').textContent = cat.name;
+  document.getElementById('cat-modal-pct').textContent = (fin.pcts[catId]||0) + '% da renda • toque para usar';
+  document.getElementById('cat-modal-bal').textContent = fmtBRL(fin.balances[catId]||0);
+  document.getElementById('cat-modal-total').textContent = fmtBRL(fin.totals[catId]||0);
+  document.getElementById('cat-modal-spent').textContent = fmtBRL(fin.spent[catId]||0);
+  document.getElementById('cat-spend-input').value = '';
+  const m = document.getElementById('modal-cat');
+  m.style.opacity = '1';
+  m.style.pointerEvents = 'all';
+  document.getElementById('cat-sheet').style.transform = 'none';
+}
+function closeCatModal() {
+  const m = document.getElementById('modal-cat');
+  document.getElementById('cat-sheet').style.transform = 'translateY(100%)';
+  setTimeout(() => { m.style.opacity='0'; m.style.pointerEvents='none'; }, 380);
+}
+function spendFromCat() {
+  const amount = parseFloat(document.getElementById('cat-spend-input').value) || 0;
+  if (amount <= 0) { showToast('Digite um valor'); return; }
+  const bal = state.fin.balances[activeCatId] || 0;
+  if (amount > bal) { showToast('Saldo insuficiente'); return; }
+  state.fin.balances[activeCatId] -= amount;
+  state.fin.spent[activeCatId] = (state.fin.spent[activeCatId]||0) + amount;
+  save();
+  closeCatModal();
+  refreshCaixa();
+  showToast('Uso registrado ✓');
+}
+
+// ── Modal: Configurar percentuais ──
+function openCaixaSettings() {
+  const form = document.getElementById('pct-form');
+  form.innerHTML = '';
+  FIN_CATS.forEach(cat => {
+    const pct = state.fin.pcts[cat.id] || 0;
+    const row = document.createElement('div');
+    row.className = 'fin-pct-row';
+    row.innerHTML = `
+      <span style="font-size:18px">${cat.icon}</span>
+      <span class="fin-pct-label">${cat.name}</span>
+      <input class="fin-pct-input" id="pct-${cat.id}" type="number" min="0" max="100" value="${pct}" oninput="updatePctTotal()">
+      <span style="font-size:12px;color:var(--muted)">%</span>
+    `;
+    form.appendChild(row);
+  });
+  updatePctTotal();
+  const m = document.getElementById('modal-pct');
+  m.style.opacity='1'; m.style.pointerEvents='all';
+  m.querySelector('.modal-sheet').style.transform='none';
+}
+function updatePctTotal() {
+  let total = 0;
+  FIN_CATS.forEach(cat => {
+    total += parseFloat(document.getElementById('pct-'+cat.id)?.value||0);
+  });
+  const label = document.getElementById('pct-total-label');
+  label.textContent = 'Total: ' + total.toFixed(0) + '%';
+  label.style.color = Math.abs(total-100)<0.1 ? 'var(--green)' : 'var(--red)';
+}
+function togglePctHelp() {
+  const msg = document.getElementById('pct-help-msg');
+  msg.style.display = msg.style.display === 'none' ? 'block' : 'none';
+}
+function closePctModal() {
+  const m = document.getElementById('modal-pct');
+  m.querySelector('.modal-sheet').style.transform='translateY(100%)';
+  setTimeout(()=>{ m.style.opacity='0'; m.style.pointerEvents='none'; }, 380);
+}
+function savePct() {
+  let total = 0;
+  FIN_CATS.forEach(cat => { total += parseFloat(document.getElementById('pct-'+cat.id)?.value||0); });
+  if (Math.abs(total-100)>0.5) { showToast('A soma deve ser 100%'); return; }
+  FIN_CATS.forEach(cat => {
+    state.fin.pcts[cat.id] = parseFloat(document.getElementById('pct-'+cat.id).value)||0;
+  });
+  save();
+  closePctModal();
+  refreshCaixa();
+  showToast('Distribuição salva ✓');
+}
+
+// Init modal sheet transform
+document.getElementById('fin-sheet').style.transform = 'translateY(100%)';
+document.getElementById('cat-sheet').style.transform = 'translateY(100%)';
+document.getElementById('modal-pct').querySelector('.modal-sheet').style.transform = 'translateY(100%)';
+
+// ═══════════════════════════════════════
+// CAIXA — SUB-TABS
+// ═══════════════════════════════════════
+let activeCaixaTab = 'distribuicao';
+function switchCaixaTab(tab) {
+  activeCaixaTab = tab;
+  document.querySelectorAll('.caixa-tab').forEach((t,i) => {
+    const tabs = ['distribuicao','diario','dividas','desejos','investimentos'];
+    t.classList.toggle('active', tabs[i] === tab);
+  });
+  document.querySelectorAll('.caixa-tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  if (tab==='diario') refreshDiario();
+  if (tab==='dividas') refreshDividas();
+  if (tab==='desejos') refreshDesejos();
+  if (tab==='investimentos') refreshInvestimentos();
+}
+
+// ═══════════════════════════════════════
+// DIÁRIO FINANCEIRO
+// ═══════════════════════════════════════
+function refreshDiario() {
+  const entries = state.fin.diario || [];
+  let somaEntrada=0, somaSaida=0;
+  entries.forEach(e => { if(e.type==='entrada') somaEntrada+=e.value; else somaSaida+=e.value; });
+  const diff = somaEntrada - somaSaida;
+  const caixa = state.fin.diarioCaixa || 0;
+  document.getElementById('d-entrada').textContent = fmtBRL(somaEntrada);
+  document.getElementById('d-saida').textContent = fmtBRL(somaSaida);
+  document.getElementById('d-diff').textContent = fmtBRL(diff);
+  document.getElementById('d-diff').style.color = diff>=0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('d-caixa').textContent = fmtBRL(caixa + diff);
+  const list = document.getElementById('diario-list');
+  if (entries.length===0) {
+    list.innerHTML='<div class="caixa-empty">Nenhum lançamento ainda.<br>Use os botões acima para registrar.</div>';
+  } else {
+    list.innerHTML='';
+    [...entries].reverse().forEach(e => {
+      const div=document.createElement('div');
+      div.className='diario-entry';
+      div.innerHTML=`
+        <div class="diario-entry-dot" style="background:${e.type==='entrada'?'var(--green)':'var(--red)'}"></div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:var(--text)">${e.what}</div>
+          <div style="font-size:11px;color:var(--muted)">${e.date}</div>
+        </div>
+        <div style="font-size:14px;font-weight:800;color:${e.type==='entrada'?'var(--green)':'var(--red)'}">${e.type==='entrada'?'+':'-'}${fmtBRL(e.value)}</div>
+      `;
+      list.appendChild(div);
+    });
+  }
+}
+
+let diarioType = 'entrada';
+function openDiarioModal(type) {
+  diarioType = type;
+  document.getElementById('diario-modal-title').textContent = type==='entrada' ? '📥 Nova Entrada' : '📤 Nova Saída';
+  document.getElementById('diario-save-btn').style.background = type==='entrada' ? 'linear-gradient(135deg,#22C55E,#16A34A)' : 'linear-gradient(135deg,#EF4444,#DC2626)';
+  document.getElementById('diario-what').value='';
+  document.getElementById('diario-val').value='';
+  const m=document.getElementById('modal-diario');
+  m.style.opacity='1'; m.style.pointerEvents='all';
+  document.getElementById('diario-sheet').style.transform='none';
+  document.getElementById('diario-what').focus();
+}
+function closeDiarioModal() {
+  document.getElementById('diario-sheet').style.transform='translateY(100%)';
+  setTimeout(()=>{ const m=document.getElementById('modal-diario'); m.style.opacity='0'; m.style.pointerEvents='none'; }, 380);
+}
+function saveDiarioEntry() {
+  const what = document.getElementById('diario-what').value.trim();
+  const value = parseFloat(document.getElementById('diario-val').value)||0;
+  if (!what) { showToast('Descreva o lançamento'); return; }
+  if (value<=0) { showToast('Digite um valor'); return; }
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
+  if (!state.fin.diario) state.fin.diario = [];
+  state.fin.diario.push({type:diarioType, what, value, date:dateStr});
+  save();
+  closeDiarioModal();
+  refreshDiario();
+  showToast(diarioType==='entrada'?'Entrada registrada ✓':'Saída registrada ✓');
+}
+
+// ═══════════════════════════════════════
+// DÍVIDAS
+// ═══════════════════════════════════════
+const DEFAULT_DIVIDAS = [
+  {id:'d1',name:'Guilherme',amount:2000,paid:false},
+  {id:'d2',name:'Jean',amount:10000,paid:false},
+  {id:'d3',name:'Otávio',amount:1165,paid:false},
+  {id:'d4',name:'Bruno Divinópolis',amount:110,paid:false},
+  {id:'d5',name:'Davis m4',amount:500,paid:false},
+  {id:'d6',name:'Vô',amount:0,paid:true},
+  {id:'d7',name:'Sebastião',amount:5000,paid:false},
+];
+
+function initDividas() {
+  if (!state.fin.dividas) state.fin.dividas = JSON.parse(JSON.stringify(DEFAULT_DIVIDAS));
+}
+function refreshDividas() {
+  initDividas();
+  const list = document.getElementById('dividas-list');
+  list.innerHTML='';
+  let total=0;
+  state.fin.dividas.forEach(d => {
+    if(!d.paid) total+=d.amount;
+    const div=document.createElement('div');
+    div.className='divida-item'+(d.paid?' pago':'');
+    div.innerHTML=`
+      <div style="width:36px;height:36px;border-radius:10px;background:${d.paid?'#F0FFF4':'#FEF2F2'};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">${d.paid?'✅':'💳'}</div>
+      <div class="divida-name">${d.name}</div>
+      <div class="divida-val${d.paid?' pago':''}">${d.paid?'Quitado':fmtBRL(d.amount)}</div>
+      ${!d.paid?`<div onclick="marcarPago('${d.id}')" style="font-size:11px;font-weight:700;color:var(--green);cursor:pointer;padding:4px 8px;background:#F0FFF4;border-radius:8px">Pagar</div>`:''}
+    `;
+    list.appendChild(div);
+  });
+  document.getElementById('dividas-total').textContent = fmtBRL(total);
+}
+function marcarPago(id) {
+  initDividas();
+  const d = state.fin.dividas.find(d=>d.id===id);
+  if(d) { d.paid=true; save(); refreshDividas(); showToast('Dívida quitada! ✓'); }
+}
+function addDivida() {
+  const name = prompt('Nome do credor:');
+  if(!name) return;
+  const amount = parseFloat(prompt('Valor (R$):')||0);
+  initDividas();
+  state.fin.dividas.push({id:'d'+Date.now(),name,amount,paid:false});
+  save(); refreshDividas();
+}
+
+// ═══════════════════════════════════════
+// DESEJOS
+// ═══════════════════════════════════════
+const DEFAULT_DESEJOS = [
+  {id:'ds1',item:'Tirar carteira B',done:true},
+  {id:'ds2',item:'Fone de ouvido',done:true},
+  {id:'ds3',item:'Tênis',done:true},
+  {id:'ds4',item:'Academia',done:true},
+  {id:'ds5',item:'Vasilhas de vidro',done:true},
+  {id:'ds6',item:'Kobe',done:true},
+  {id:'ds7',item:'MacBook',done:false},
+  {id:'ds8',item:'iPhone novo',done:false},
+  {id:'ds9',item:'Mudar de apartamento',done:false},
+  {id:'ds10',item:'Câmera',done:false},
+];
+function initDesejos() {
+  if (!state.fin.desejos) state.fin.desejos = JSON.parse(JSON.stringify(DEFAULT_DESEJOS));
+}
+function refreshDesejos() {
+  initDesejos();
+  const list = document.getElementById('desejos-list');
+  list.innerHTML='';
+  const done=state.fin.desejos.filter(d=>d.done).length;
+  const total=state.fin.desejos.length;
+  const prog=document.createElement('div');
+  prog.style.cssText='background:var(--white);border-radius:var(--r);padding:14px 16px;box-shadow:var(--sh);margin-bottom:12px';
+  prog.innerHTML=`
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+      <span style="font-size:13px;font-weight:600;color:var(--text)">Progresso dos desejos</span>
+      <span style="font-size:13px;font-weight:700;color:var(--green)">${done}/${total}</span>
+    </div>
+    <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+      <div style="height:100%;background:var(--green);border-radius:3px;width:${total?Math.round(done/total*100):0}%;transition:width .5s"></div>
+    </div>
+  `;
+  list.appendChild(prog);
+  state.fin.desejos.forEach(d => {
+    const div=document.createElement('div');
+    div.className='desejo-item'+(d.done?' done':'');
+    div.innerHTML=`
+      <div class="desejo-check${d.done?' done':''}">✓</div>
+      <div class="desejo-label">${d.item}</div>
+      ${d.done?'<span style="font-size:14px">✅</span>':'<span style="font-size:14px">⭐</span>'}
+    `;
+    div.onclick=()=>toggleDesejo(d.id);
+    list.appendChild(div);
+  });
+}
+function toggleDesejo(id) {
+  initDesejos();
+  const d=state.fin.desejos.find(d=>d.id===id);
+  if(d){ d.done=!d.done; save(); refreshDesejos(); if(d.done) showToast('Desejo realizado! ⭐'); }
+}
+function addDesejo() {
+  const item=prompt('Qual é o desejo?');
+  if(!item) return;
+  initDesejos();
+  state.fin.desejos.push({id:'ds'+Date.now(),item,done:false});
+  save(); refreshDesejos();
+}
+
+// ═══════════════════════════════════════
+// INVESTIMENTOS
+// ═══════════════════════════════════════
+const DEFAULT_INVEST = [
+  {id:'i1',name:'Curso Alex Vargas',value:495},
+  {id:'i2',name:'YouTube Money',value:295},
+  {id:'i3',name:'Nomade',value:2000},
+  {id:'i4',name:'SNIPER',value:900},
+  {id:'i5',name:'Império',value:1000},
+  {id:'i6',name:'IMPERIO IN HOUSE',value:6000},
+  {id:'i7',name:'BUSINESS MIND',value:10000},
+  {id:'i8',name:'Igreen Energy',value:1799},
+  {id:'i9',name:'KOBE HUB',value:8000},
+  {id:'i10',name:'KOBE RIO',value:3000},
+  {id:'i11',name:'OB',value:3000},
+];
+function initInvest() {
+  if (!state.fin.investimentos) state.fin.investimentos = JSON.parse(JSON.stringify(DEFAULT_INVEST));
+}
+function refreshInvestimentos() {
+  initInvest();
+  const list=document.getElementById('invest-list');
+  list.innerHTML='';
+  let total=0;
+  state.fin.investimentos.forEach(inv=>total+=inv.value);
+  document.getElementById('invest-total').textContent=fmtBRL(total);
+  document.getElementById('invest-count').textContent=state.fin.investimentos.length+' investimentos registrados';
+  state.fin.investimentos.forEach(inv=>{
+    const pct=total>0?Math.round(inv.value/total*100):0;
+    const div=document.createElement('div');
+    div.className='invest-item';
+    div.innerHTML=`
+      <div>
+        <div class="invest-name">${inv.name}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">${pct}% do total</div>
+        <div style="height:3px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden;width:120px">
+          <div style="height:100%;background:#7C3AED;border-radius:2px;width:${pct}%"></div>
+        </div>
+      </div>
+      <div class="invest-val">${fmtBRL(inv.value)}</div>
+    `;
+    list.appendChild(div);
+  });
+}
+function addInvestimento() {
+  const name=prompt('Nome do investimento:');
+  if(!name) return;
+  const value=parseFloat(prompt('Valor investido (R$):')||0);
+  initInvest();
+  state.fin.investimentos.push({id:'i'+Date.now(),name,value});
+  save(); refreshInvestimentos();
+}
+
+// ═══════════════════════════════════════
+// START
+// ═══════════════════════════════════════
+init();
+</script>
+</body>
+</html>
