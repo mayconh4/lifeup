@@ -2247,14 +2247,4 @@ function addInvestimento() {
   if(!name) return;
   const value=parseFloat(prompt('Valor investido (R$):')||0);
   initInvest();
-  state.fin.investimentos.push({id:'i'+Date.now(),name,value});
-  save(); refreshInvestimentos();
-}
-
-// ═══════════════════════════════════════
-// START
-// ═══════════════════════════════════════
-init();
-</script>
-</body>
-</html>
+  state.fin.investimentos.push({id:'i'+Date.now(),
