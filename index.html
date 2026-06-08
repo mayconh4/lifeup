@@ -1245,9 +1245,19 @@ function updateStreak() {
 }
 
 function showMain() {
+  const onboard = document.getElementById('s-onboard');
+  onboard.classList.remove('active');
+  onboard.style.zIndex = '-1';
+  onboard.style.pointerEvents = 'none';
+  onboard.style.opacity = '0';
+  currentScreen = 's-home';
   document.getElementById('bottom-nav').style.display = 'flex';
-  goToScreen('s-home');
-  refreshDashboard();
+  const home = document.getElementById('s-home');
+  home.classList.add('active');
+  home.style.opacity = '1';
+  home.style.pointerEvents = 'all';
+  home.style.transform = 'none';
+  setTimeout(() => refreshDashboard(), 50);
 }
 
 // ═══════════════════════════════════════
