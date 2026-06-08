@@ -1245,18 +1245,17 @@ function updateStreak() {
 }
 
 function showMain() {
+  // Reset ALL screen inline styles then use CSS classes only
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active', 'slide-left');
+    s.style.cssText = '';
+  });
+  // Force onboarding completely hidden
   const onboard = document.getElementById('s-onboard');
-  onboard.classList.remove('active');
-  onboard.style.zIndex = '-1';
-  onboard.style.pointerEvents = 'none';
-  onboard.style.opacity = '0';
+  onboard.style.display = 'none';
   currentScreen = 's-home';
   document.getElementById('bottom-nav').style.display = 'flex';
-  const home = document.getElementById('s-home');
-  home.classList.add('active');
-  home.style.opacity = '1';
-  home.style.pointerEvents = 'all';
-  home.style.transform = 'none';
+  document.getElementById('s-home').classList.add('active');
   setTimeout(() => refreshDashboard(), 50);
 }
 
@@ -1375,11 +1374,13 @@ function selectModule(mod) {
 
 function showOnboarding() {
   obStep = 0;
+  const onboard = document.getElementById('s-onboard');
+  onboard.style.display = '';  // Restore display if hidden
   document.querySelectorAll('.ob-slide').forEach(s => s.classList.remove('active','exit'));
   document.getElementById('ob0').classList.add('active');
   document.querySelectorAll('.ob-dot').forEach((d,i) => d.classList.toggle('active', i===0));
   document.getElementById('ob-next-btn').textContent = 'Começar →';
-  document.getElementById('s-onboard').classList.add('active');
+  onboard.classList.add('active');
   document.getElementById('bottom-nav').style.display = 'none';
 }
 
