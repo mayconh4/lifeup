@@ -1318,20 +1318,39 @@ function obNext() {
     goToObStep(3);
     document.getElementById('ob-next-btn').textContent = 'Começar minha jornada 🚀';
   } else if (obStep === 3) {
-    if (!selectedModule) { showToast('Escolha uma área de foco'); return; }
-    state.user.focus = selectedModule;
+    try {
+      state.user.focus = selectedModule || 'Mentalidade';
+      state.onboardingDone = true;
+      if (!state.unlockedAchievements.includes('first_steps')) {
+        state.unlockedAchievements.push('first_steps');
+        pendingUnlocks.push('first_steps');
+      }
+      if (!state.unlockedAchievements.includes('dreamer')) {
+        state.unlockedAchievements.push('dreamer');
+        pendingUnlocks.push('dreamer');
+      }
+      try { save(); } catch(e) {}
+      showMain();
+      setTimeout(() => processPendingUnlocks(), 800);
+    } catch(e) {
+      alert('Erro: ' + e.message);
+    }
+  }
+}
+
+function skipOnboarding() {
+  try {
+    state.user.name = state.user.name || 'Explorador';
+    state.user.dream = state.user.dream || 'Realizar meu máximo potencial';
+    state.user.focus = 'Mentalidade';
     state.onboardingDone = true;
     if (!state.unlockedAchievements.includes('first_steps')) {
       state.unlockedAchievements.push('first_steps');
-      pendingUnlocks.push('first_steps');
     }
-    if (!state.unlockedAchievements.includes('dreamer')) {
-      state.unlockedAchievements.push('dreamer');
-      pendingUnlocks.push('dreamer');
-    }
-    save();
+    try { save(); } catch(e) {}
     showMain();
-    setTimeout(() => processPendingUnlocks(), 800);
+  } catch(e) {
+    alert('Erro skip: ' + e.message);
   }
 }
 
@@ -1353,17 +1372,6 @@ function selectModule(mod) {
   document.getElementById('mod-' + mod).classList.add('selected');
 }
 
-function skipOnboarding() {
-  state.user.name = 'Explorador';
-  state.user.dream = 'Realizar meu máximo potencial';
-  state.user.focus = 'Mentalidade';
-  state.onboardingDone = true;
-  if (!state.unlockedAchievements.includes('first_steps')) {
-    state.unlockedAchievements.push('first_steps');
-  }
-  save();
-  showMain();
-}
 
 function showOnboarding() {
   obStep = 0;
