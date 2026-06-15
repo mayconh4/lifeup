@@ -100,6 +100,21 @@ Toda explicação do botão **🎧 Ouvir** segue a mesma sequência didática:
 > consistente… Seu desafio: escolha um hábito de cinco minutos e repita hoje e
 > amanhã, sem falta."*
 
+### 5.1. Ativar a voz neural do Edge (edge-tts)
+
+Para a voz neural feminina fluida funcionar **em qualquer navegador/celular**,
+publique o pequeno serviço incluído na pasta `tts-service/` e conecte no app:
+
+1. Crie um **Hugging Face Space** (grátis) em <https://huggingface.co/new-space>
+   — SDK **Docker**, público — e suba os arquivos de `tts-service/`
+   (`app.py`, `requirements.txt`, `Dockerfile`, `README.md`).
+2. Aguarde o build. Copie a URL pública (ex.: `https://SEU-USUARIO-lifeup-tts.hf.space`).
+3. No app: **Perfil → Voz do mentor (edge-tts)** → cole a URL.
+4. Pronto: o 🎧 **Ouvir** passa a usar a voz neural. Para trocar a voz, use
+   **Perfil → Escolher voz neural** (Thalita / Francisca / Antônio).
+
+> Se o serviço cair, o app volta sozinho para a voz do navegador — sem travar.
+
 ### A barra de reprodução
 
 Quando o mentor fala, surge uma barra flutuante na parte de baixo com:
@@ -164,11 +179,14 @@ Em alguns aparelhos a voz só inicia após o **primeiro toque** na tela. Se o ap
 mostrar *"navegador não suporta a voz"*, troque de navegador.
 
 **Em que idioma / qual voz o mentor usa?**
-Português do Brasil (`pt-BR`). O app escolhe automaticamente a **melhor** voz
-pt-BR disponível, priorizando as **vozes neurais do Microsoft Edge** (as
-*"Online (Natural)"*, como *Thalita*, *Francisca* e *Antônio*) — bem mais
-naturais. Por isso, para a melhor experiência de voz, **abra o app no Microsoft
-Edge**. No Chrome/Safari ele usa a melhor voz pt-BR disponível como alternativa.
+Português do Brasil (`pt-BR`), com voz **feminina e fluida** por padrão
+(*Thalita*, voz neural do Edge). Há dois modos:
+
+1. **Voz neural hospedada (recomendado)** — um serviço `edge-tts` que entrega a
+   voz neural do Edge em **qualquer navegador e celular**. Veja a seção 5.1.
+2. **Voz do navegador (alternativa automática)** — se o serviço não estiver
+   configurado/disponível, o app usa a melhor voz pt-BR do próprio navegador
+   (no Edge, as vozes "Online (Natural)").
 
 **Perco meu progresso se fechar o app?**
 Não. Tudo fica salvo no aparelho. Só some se você usar *Reiniciar Progresso* ou

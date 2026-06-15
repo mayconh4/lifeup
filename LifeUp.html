@@ -739,6 +739,22 @@ body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); 
       </div>
       <div class="profile-section anim-slide-up">
         <div class="profile-section-title">Configurações</div>
+        <div class="profile-item" onclick="setTtsEndpoint()">
+          <div class="profile-item-icon" style="background:#EEF0FF">🎧</div>
+          <div class="profile-item-text">
+            <strong>Voz do mentor (edge-tts)</strong>
+            <span id="tts-status-sub">Conectar o serviço de voz neural do Edge</span>
+          </div>
+          <span class="profile-item-arrow">›</span>
+        </div>
+        <div class="profile-item" onclick="setTtsVoiceChoice()">
+          <div class="profile-item-icon" style="background:#F5F3FF">🎙️</div>
+          <div class="profile-item-text">
+            <strong>Escolher voz neural</strong>
+            <span>Thalita (feminina fluida), Francisca ou Antônio</span>
+          </div>
+          <span class="profile-item-arrow">›</span>
+        </div>
         <div class="profile-item" onclick="showOnboarding()">
           <div class="profile-item-icon" style="background:#EEF0FF">🚀</div>
           <div class="profile-item-text">
@@ -1802,6 +1818,11 @@ function refreshProfile() {
   document.getElementById('stat-lessons').textContent = state.completedLessons.length;
   document.getElementById('stat-streak').textContent = state.streak || 0;
   document.getElementById('stat-ach').textContent = state.unlockedAchievements.length + state.customAchievements.length;
+  const ttsSub = document.getElementById('tts-status-sub');
+  if(ttsSub){
+    const ep = getTtsEndpoint();
+    ttsSub.textContent = ep ? ('Conectado: ' + ep.replace(/^https?:\/\//,'')) : 'Conectar o serviço de voz neural do Edge';
+  }
 }
 
 function resetApp() {
@@ -2462,13 +2483,51 @@ function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-// Motor de voz (Web Speech API) — funciona offline, sem servidor.
+// ── Configuração do serviço edge-tts (vozes neurais do Edge, hospedado) ──
+// Cole aqui a URL do seu Hugging Face Space, OU configure pelo Perfil do app.
+// Vazio = usa a voz do navegador (Web Speech API) como alternativa.
+const TTS_ENDPOINT = '';
+const TTS_VOICE = 'pt-BR-ThalitaNeural';     // voz neural pt-BR padrão (edge-tts)
+const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+function getTtsEndpoint(){
+  try { return (localStorage.getItem('lifeup_tts_url') || TTS_ENDPOINT || '').replace(/\/+$/,'').trim(); }
+  catch(e){ return (TTS_ENDPOINT || '').replace(/\/+$/,''); }
+}
+function getTtsVoice(){
+  try { return localStorage.getItem('lifeup_tts_voice') || TTS_VOICE; } catch(e){ return TTS_VOICE; }
+}
+// Vozes neurais pt-BR do Edge mais fluidas (femininas primeiro).
+const TTS_VOICES_PTBR = ['pt-BR-ThalitaNeural','pt-BR-FranciscaNeural','pt-BR-AntonioNeural'];
+function setTtsEndpoint(){
+  const cur = (function(){ try{ return localStorage.getItem('lifeup_tts_url')||''; }catch(e){ return ''; } })();
+  const v = prompt('Cole a URL do seu serviço edge-tts (Hugging Face Space).\nEx.: https://maycaco-lifeup-tts.hf.space\n\nDeixe em branco para usar a voz do navegador.', cur);
+  if(v===null) return;
+  const url = v.trim().replace(/\/+$/,'');
+  try { if(url) localStorage.setItem('lifeup_tts_url', url); else localStorage.removeItem('lifeup_tts_url'); } catch(e){}
+  Mentor.endpoint = url;
+  showToast(url ? '🎧 Voz edge-tts conectada!' : '🔊 Usando voz do navegador');
+}
+function setTtsVoiceChoice(){
+  const cur = getTtsVoice();
+  const v = prompt('Voz neural pt-BR do Edge (feminina fluida = Thalita):\n\n• pt-BR-ThalitaNeural  (feminina, fluida)\n• pt-BR-FranciscaNeural (feminina)\n• pt-BR-AntonioNeural   (masculina)\n\nCole o nome da voz:', cur);
+  if(v===null) return;
+  const name = v.trim();
+  try { if(name) localStorage.setItem('lifeup_tts_voice', name); else localStorage.removeItem('lifeup_tts_voice'); } catch(e){}
+  Mentor.voiceName = name || TTS_VOICE;
+  showToast('🎙️ Voz: ' + (Mentor.voiceName));
+}
+
+// Motor de voz: usa o serviço edge-tts (online) quando configurado e cai para a
+// Web Speech API do navegador automaticamente se ele estiver indisponível.
 const Mentor = {
   segs:[], idx:0, playing:false, paused:false, voice:null, rate:1, onSeg:null, onDone:null, ctx:'listen', _keepAlive:null,
-  supported(){ return typeof window !== 'undefined' && 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window; },
+  mode:'browser', endpoint:'', voiceName:TTS_VOICE, _player:null, _cache:{}, _warned:false,
+  supported(){ return !!getTtsEndpoint() || (typeof window !== 'undefined' && 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window); },
   init(){
-    if(!this.supported()) return;
     this.rate = state.voiceRate || 1;
+    this.endpoint = getTtsEndpoint();
+    this.voiceName = getTtsVoice();
+    if(!this.supported()) return;
     this.loadVoice();
     try { window.speechSynthesis.onvoiceschanged = () => this.loadVoice(); } catch(e){}
   },
@@ -2493,58 +2552,122 @@ const Mentor = {
     } catch(e){ this.voice = null; }
   },
   play(segments, opts={}){
+    this.endpoint = getTtsEndpoint();
+    this.voiceName = getTtsVoice();
     if(!this.supported()){ showToast('⚠️ Seu navegador não suporta a voz do mentor'); return; }
     this.stop(true);
     this.segs = (segments||[]).filter(s=>s && s.text);
     if(!this.segs.length) return;
-    this.idx = 0; this.playing = true; this.paused = false;
+    this.idx = 0; this.playing = true; this.paused = false; this._warned = false;
     this.onSeg = opts.onSeg || null; this.onDone = opts.onDone || null;
     this.ctx = opts.ctx || 'listen';
-    if(!this.voice) this.loadVoice();
+    if(this.supported() && 'speechSynthesis' in window && !this.voice) this.loadVoice();
     showPlayer();
     setListenBtn(true);
-    // keep-alive: contorna o bug do Chrome que pausa sozinho falas longas
+    if(this.endpoint) this._unlock();   // libera autoplay dentro do gesto do usuário
+    // keep-alive: contorna o bug do Chrome que pausa sozinho falas longas (voz do navegador)
     clearInterval(this._keepAlive);
-    this._keepAlive = setInterval(()=>{ if(this.playing && !this.paused){ try{ window.speechSynthesis.resume(); }catch(e){} } }, 9000);
+    this._keepAlive = setInterval(()=>{ if(this.playing && !this.paused && this.mode==='browser'){ try{ window.speechSynthesis.resume(); }catch(e){} } }, 9000);
     this._speak();
   },
+  _ensurePlayer(){ if(!this._player){ this._player = new Audio(); this._player.preload = 'auto'; } return this._player; },
+  _unlock(){ try{ const a=this._ensurePlayer(); a.src=SILENT_WAV; const p=a.play(); if(p&&p.catch) p.catch(()=>{}); }catch(e){} },
   _speak(){
     if(!this.playing) return;
     if(this.idx >= this.segs.length){ this._finish(); return; }
     const seg = this.segs[this.idx];
     if(this.onSeg) try{ this.onSeg(seg, this.idx, this.segs.length); }catch(e){}
     updatePlayer(seg, this.idx, this.segs.length);
+    if(this.endpoint) this._speakOnline(seg); else this._speakBrowser(seg);
+  },
+  _advance(seg){ this.idx++; setTimeout(()=>{ if(this.playing && !this.paused) this._speak(); }, seg.pause || 300); },
+  // ── Modo online: edge-tts hospedado ──
+  _ttsUrl(i){
+    const seg = this.segs[i];
+    const pct = Math.round((this.rate - 1) * 100);
+    const rate = (pct>=0?'+':'') + pct + '%';
+    return this.endpoint + '/tts?voice=' + encodeURIComponent(this.voiceName) +
+           '&rate=' + encodeURIComponent(rate) + '&text=' + encodeURIComponent(seg.text);
+  },
+  _fetchAudio(i){
+    if(this._cache[i]) return Promise.resolve(this._cache[i]);
+    return fetch(this._ttsUrl(i)).then(r=>{ if(!r.ok) throw new Error('http '+r.status); return r.blob(); })
+      .then(b=>{ const url=URL.createObjectURL(b); this._cache[i]=url; return url; });
+  },
+  _prefetch(i){ if(this.endpoint && i < this.segs.length && !this._cache[i]) this._fetchAudio(i).catch(()=>{}); },
+  _speakOnline(seg){
+    this.mode = 'online';
+    this._fetchAudio(this.idx).then(url => {
+      if(!this.playing || this.paused) return;     // resume() reinicia o segmento
+      const a = this._ensurePlayer();
+      a.onended = () => { if(this.playing) this._advance(seg); };
+      a.onerror = () => { if(this.playing) this._fallback(seg); };
+      a.src = url; a.currentTime = 0;
+      this._prefetch(this.idx + 1);
+      const p = a.play(); if(p && p.catch) p.catch(()=>{ if(this.playing) this._fallback(seg); });
+    }).catch(()=>{ if(this.playing) this._fallback(seg); });
+  },
+  _fallback(seg){
+    this.endpoint = '';                              // desliga online nesta sessão
+    if(!this._warned){ this._warned = true; showToast('🔊 Voz online indisponível — usando voz do navegador'); }
+    this._speakBrowser(seg);
+  },
+  // ── Modo navegador: Web Speech API ──
+  _speakBrowser(seg){
+    this.mode = 'browser';
+    if(!('speechSynthesis' in window)){ this._advance(seg); return; }
     const u = new SpeechSynthesisUtterance(seg.text);
     if(this.voice){ u.voice = this.voice; u.lang = this.voice.lang; } else { u.lang = 'pt-BR'; }
     u.rate = this.rate; u.pitch = 1.02; u.volume = 1;
-    u.onend = () => {
-      if(!this.playing) return;
-      this.idx++;
-      setTimeout(()=>{ if(this.playing && !this.paused) this._speak(); }, seg.pause || 320);
-    };
-    u.onerror = () => { if(!this.playing) return; this.idx++; setTimeout(()=>{ if(this.playing && !this.paused) this._speak(); }, 200); };
+    u.onend = () => { if(this.playing) this._advance(seg); };
+    u.onerror = () => { if(this.playing) this._advance(seg); };
     try { window.speechSynthesis.speak(u); } catch(e){ this._finish(); }
   },
-  pause(){ if(this.playing && !this.paused){ this.paused = true; try{ window.speechSynthesis.pause(); }catch(e){} updatePlayerBtn(); } },
-  resume(){ if(this.playing && this.paused){ this.paused = false; try{ window.speechSynthesis.resume(); }catch(e){} updatePlayerBtn(); } },
+  pause(){
+    if(this.playing && !this.paused){
+      this.paused = true;
+      if(this.mode==='online'){ try{ if(this._player) this._player.pause(); }catch(e){} }
+      else { try{ window.speechSynthesis.pause(); }catch(e){} }
+      updatePlayerBtn();
+    }
+  },
+  resume(){
+    if(this.playing && this.paused){
+      this.paused = false;
+      if(this.mode==='online'){
+        if(this._player && this._player.src && !this._player.ended && this._player.currentTime>0){ this._player.play().catch(()=>{}); }
+        else { this._speak(); }
+      } else { try{ window.speechSynthesis.resume(); }catch(e){} }
+      updatePlayerBtn();
+    }
+  },
   toggle(){ this.paused ? this.resume() : this.pause(); },
   cycleSpeed(){
     const steps = [0.9, 1, 1.15, 1.3];
     let i = steps.indexOf(this.rate); i = (i + 1) % steps.length;
     this.rate = steps[i]; state.voiceRate = this.rate; save();
     const b = document.getElementById('mp-speed'); if(b) b.textContent = this.rate + 'x';
-    if(this.playing){ try{ window.speechSynthesis.cancel(); }catch(e){} this.paused = false; this._speak(); }
+    if(this.playing){
+      this._clearCache();                            // áudio em cache tinha a velocidade antiga
+      if(this._player){ try{ this._player.pause(); }catch(e){} }
+      try{ if('speechSynthesis' in window) window.speechSynthesis.cancel(); }catch(e){}
+      this.paused = false; this._speak();
+    }
   },
+  _clearCache(){ for(const k in this._cache){ try{ URL.revokeObjectURL(this._cache[k]); }catch(e){} } this._cache = {}; },
   stop(silent){
     this.playing = false; this.paused = false;
     clearInterval(this._keepAlive);
-    try { window.speechSynthesis.cancel(); } catch(e){}
+    try { if('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch(e){}
+    if(this._player){ try{ this._player.pause(); }catch(e){} }
+    this._clearCache();
     setListenBtn(false);
     if(!silent){ hidePlayer(); }
   },
   _finish(){
     this.playing = false; this.paused = false;
     clearInterval(this._keepAlive);
+    this._clearCache();
     setListenBtn(false);
     const cb = this.onDone; this.onDone = null;
     hidePlayer();
