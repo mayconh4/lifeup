@@ -2694,18 +2694,49 @@ function setListenBtn(on){
   b.innerHTML = on ? '<span class="mb-ico">🎙️</span> Falando…' : '<span class="mb-ico">🎧</span> Ouvir Explicação';
 }
 
-// ── Monta o roteiro completo (5 etapas) de uma lição ──
+// ── Extrai o conteúdo COMPLETO da sessão (parágrafos, tópicos, citações) ──
+function lessonContentSegments(lesson){
+  const out = [];
+  try {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = lesson.content || '';
+    tmp.querySelectorAll('h3, p, blockquote, li').forEach(el => {
+      const txt = (el.textContent || '').trim();
+      if(!txt) return;
+      const tag = el.tagName.toLowerCase();
+      const label = tag === 'h3' ? 'Tópico' : (tag === 'blockquote' ? 'Reflexão' : 'Conteúdo');
+      splitSentences(txt).forEach(t => out.push({ stage:'conteudo', stageLabel:label, text:t }));
+    });
+  } catch(e){}
+  return out;
+}
+
+// ── Monta o roteiro COMPLETO da lição: a sessão é lida por inteiro ──
 function buildMentorScript(lesson){
   const m = MENTOR[lesson.id] || {};
   const nm = (state.user.name || '').trim();
   const segs = [];
   const add = (stage, label, text) => splitSentences(text).forEach(t => segs.push({ stage, stageLabel: label, text: t }));
-  const opener = (nm ? nm + ', ' : '') + (m.hook || ('Vamos falar sobre ' + lesson.title + '.'));
-  add('conceito',  'O que é',        opener);
-  add('porque',    'Por que importa', m.porque);
-  add('real',      'No mundo real',   m.real);
-  add('execucao',  'Como executar',   m.exec);
-  add('desafio',   'Seu desafio',     m.desafio);
+  // Abertura do mentor
+  add('conceito', 'Introdução', (nm ? nm + ', ' : '') + 'vamos estudar a fundo a Lição ' + lesson.id + ': ' + lesson.title + '. ' + lesson.sub + '.');
+  if(m.hook) add('conceito', 'O que é', m.hook);
+  // CONTEÚDO COMPLETO da sessão (lido por inteiro)
+  const content = lessonContentSegments(lesson);
+  if(content.length){
+    segs.push({ stage:'conteudo', stageLabel:'Conteúdo da sessão', text:'Agora vamos ao conteúdo completo desta sessão.', pause:300 });
+    content.forEach(s => segs.push(s));
+  }
+  // Os pilares da lição, um por um (texto completo de cada passo)
+  if(lesson.steps && lesson.steps.length){
+    add('execucao', 'Pontos-chave', 'Vamos aos pontos-chave desta lição, um por um.');
+    lesson.steps.forEach((s, i) => add('execucao', 'Ponto ' + (i+1) + ' de ' + lesson.steps.length, s.title + '. ' + s.desc));
+  }
+  // Mentoria: por que importa, mundo real, como executar
+  if(m.porque) add('porque', 'Por que importa', m.porque);
+  if(m.real)   add('real',   'No mundo real',    m.real);
+  if(m.exec)   add('execucao','Como executar',    m.exec);
+  // Desafio prático
+  if(m.desafio) add('desafio', 'Seu desafio', m.desafio);
   segs.push({ stage:'desafio', stageLabel:'Seu desafio', text:'Quando executar, volte aqui e toque em Registrar Evolução. Eu vou acompanhar o seu progresso.', pause:200 });
   return segs;
 }
@@ -2816,7 +2847,7 @@ function renderMentorBar(lesson){
     : '<span class="mb-ico">✏️</span> Fazer Exercício';
   const hint = document.getElementById('mentor-hint');
   if(hint) hint.innerHTML = Mentor.supported()
-    ? '🎧 Toque em <strong>Ouvir</strong> e o mentor vai te explicar esta lição como um treinador particular.'
+    ? '🎧 Toque em <strong>Ouvir</strong> e o mentor lê a <strong>sessão completa</strong> e te ensina como um treinador particular.'
     : '⚠️ Seu navegador não suporta a voz do mentor. Tente o Chrome ou o Safari mais recente.';
 }
 
