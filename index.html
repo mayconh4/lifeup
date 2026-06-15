@@ -372,6 +372,7 @@ body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); 
 .mentor-btn.primary { background:var(--pg); color:#fff; border:none; box-shadow:var(--sh2); }
 .mentor-btn.primary.speaking { background:linear-gradient(135deg,#22C55E,#16A34A); }
 .mentor-hint { margin:12px 20px 0; font-size:12px; color:var(--muted); line-height:1.5; text-align:center; }
+.full-badge { display:inline-block; margin:0 0 12px; padding:5px 12px; border-radius:20px; background:linear-gradient(135deg,#22C55E,#16A34A); color:#fff; font-size:11px; font-weight:700; letter-spacing:.3px; }
 .reading-flash { animation:readingFlash 1.2s ease-out; border-radius:14px; }
 @keyframes readingFlash { 0%,100%{box-shadow:0 0 0 0 rgba(91,110,248,0)} 30%{box-shadow:0 0 0 4px rgba(91,110,248,.22)} }
 
@@ -752,6 +753,15 @@ body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); 
           <div class="profile-item-text">
             <strong>Escolher voz neural</strong>
             <span>Thalita (feminina fluida), Francisca ou Antônio</span>
+          </div>
+          <span class="profile-item-arrow">›</span>
+        </div>
+        <input type="file" id="content-file-input" accept=".json,application/json" style="display:none" onchange="onContentFile(this)">
+        <div class="profile-item" onclick="importContent()">
+          <div class="profile-item-icon" style="background:#F0FFF4">📚</div>
+          <div class="profile-item-text">
+            <strong>Importar conteúdo completo</strong>
+            <span id="content-status-sub">Carregar seu licoes.json (privado, fica só neste aparelho)</span>
           </div>
           <span class="profile-item-arrow">›</span>
         </div>
@@ -1344,6 +1354,7 @@ function init() {
     showScreen('s-onboard');
   }
   buildEmojiGrid();
+  loadImportedContent();
   Mentor.init();
 }
 
@@ -1637,7 +1648,7 @@ function openLesson(id) {
   renderTutStep(lesson);
 
   // Content
-  document.getElementById('lesson-d-content').innerHTML = lesson.content;
+  renderLessonBody(lesson);
 
   // Mentor de voz
   renderMentorBar(lesson);
@@ -1822,6 +1833,11 @@ function refreshProfile() {
   if(ttsSub){
     const ep = getTtsEndpoint();
     ttsSub.textContent = ep ? ('Conectado: ' + ep.replace(/^https?:\/\//,'')) : 'Conectar o serviço de voz neural do Edge';
+  }
+  const cSub = document.getElementById('content-status-sub');
+  if(cSub){
+    const n = fullCount();
+    cSub.textContent = n ? (n + ' lições com conteúdo completo (toque para trocar)') : 'Carregar seu licoes.json (privado, fica só neste aparelho)';
   }
 }
 
@@ -2517,6 +2533,54 @@ function setTtsVoiceChoice(){
   showToast('🎙️ Voz: ' + (Mentor.voiceName));
 }
 
+// ── Conteúdo completo PRIVADO (importado no dispositivo, nunca publicado) ──
+// O arquivo content/licoes.json é gerado pelo usuário (tools/extract_content.py)
+// a partir dos próprios documentos e fica só no aparelho (localStorage).
+let LESSON_FULL = {};
+function loadImportedContent(){
+  try { const d = localStorage.getItem('lifeup_content'); LESSON_FULL = d ? (JSON.parse(d) || {}) : {}; }
+  catch(e){ LESSON_FULL = {}; }
+}
+function hasFull(id){
+  const o = LESSON_FULL && LESSON_FULL[String(id)];
+  return !!(o && Array.isArray(o.paragraphs) && o.paragraphs.length);
+}
+function fullCount(){ let n=0; for(const k in LESSON_FULL){ if(hasFull(k)) n++; } return n; }
+function importContent(){ const i=document.getElementById('content-file-input'); if(i) i.click(); }
+function onContentFile(input){
+  const f = input.files && input.files[0]; if(!f){ return; }
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const obj = JSON.parse(r.result);
+      let count = 0; for(const k in obj){ if(obj[k] && Array.isArray(obj[k].paragraphs)) count++; }
+      if(!count) throw new Error('formato');
+      localStorage.setItem('lifeup_content', JSON.stringify(obj));
+      LESSON_FULL = obj;
+      showToast('📚 Conteúdo completo importado (' + count + ' lições)!');
+      refreshProfile();
+    } catch(e){ showToast('Arquivo inválido. Use o licoes.json gerado pelo extrator.'); }
+    input.value = '';
+  };
+  r.readAsText(f);
+}
+function clearImportedContent(){
+  try { localStorage.removeItem('lifeup_content'); } catch(e){}
+  LESSON_FULL = {};
+  showToast('Conteúdo importado removido.');
+  refreshProfile();
+}
+function renderLessonBody(lesson){
+  const el = document.getElementById('lesson-d-content'); if(!el) return;
+  if(hasFull(lesson.id)){
+    const paras = LESSON_FULL[String(lesson.id)].paragraphs;
+    el.innerHTML = '<div class="full-badge">📚 Conteúdo completo · sessão na íntegra</div>' +
+      paras.map(p => '<p>' + escapeHtml(p) + '</p>').join('');
+  } else {
+    el.innerHTML = lesson.content;
+  }
+}
+
 // Motor de voz: usa o serviço edge-tts (online) quando configurado e cai para a
 // Web Speech API do navegador automaticamente se ele estiver indisponível.
 const Mentor = {
@@ -2697,6 +2761,14 @@ function setListenBtn(on){
 // ── Extrai o conteúdo COMPLETO da sessão (parágrafos, tópicos, citações) ──
 function lessonContentSegments(lesson){
   const out = [];
+  // Preferir o conteúdo completo importado (privado, no dispositivo)
+  if(hasFull(lesson.id)){
+    LESSON_FULL[String(lesson.id)].paragraphs.forEach(p => {
+      splitSentences(p).forEach(t => out.push({ stage:'conteudo', stageLabel:'Conteúdo da sessão', text:t }));
+    });
+    return out;
+  }
+  // Senão, usa o resumo embutido (parse do HTML)
   try {
     const tmp = document.createElement('div');
     tmp.innerHTML = lesson.content || '';

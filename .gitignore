@@ -1,0 +1,13 @@
+# ── Conteúdo PRIVADO (material protegido) — NUNCA publicar ──
+content/licoes.json
+content/*.json
+
+# Documentos-fonte das lições (uso local apenas)
+*.pdf
+*.docx
+*.pptx
+*.doc
+*.ppt
+LICAO */
+PDF LIÇÕES TIR PARA CLIENTES/
+Todas as lições em texto/
