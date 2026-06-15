@@ -362,6 +362,42 @@ body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); 
 /* Stars decoration */
 .stars-bg { position:absolute; inset:0; pointer-events:none; }
 .star { position:absolute; background:#fff; border-radius:50%; animation:pulse-ring 2s ease-out infinite; }
+
+/* ───────── Mentor de Voz (Voice Learning System) ───────── */
+.mentor-bar { margin:16px 20px 0; display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.mentor-btn { display:flex; align-items:center; justify-content:center; gap:7px; padding:14px 10px; border-radius:14px; border:1px solid var(--border); background:var(--white); color:var(--text); font-size:13px; font-weight:700; font-family:inherit; cursor:pointer; transition:all .2s; box-shadow:var(--sh); text-align:center; line-height:1.2; }
+.mentor-btn:active { transform:scale(.97); }
+.mentor-btn .mb-ico { font-size:16px; }
+.mentor-btn.wide { grid-column:1 / -1; }
+.mentor-btn.primary { background:var(--pg); color:#fff; border:none; box-shadow:var(--sh2); }
+.mentor-btn.primary.speaking { background:linear-gradient(135deg,#22C55E,#16A34A); }
+.mentor-hint { margin:12px 20px 0; font-size:12px; color:var(--muted); line-height:1.5; text-align:center; }
+.reading-flash { animation:readingFlash 1.2s ease-out; border-radius:14px; }
+@keyframes readingFlash { 0%,100%{box-shadow:0 0 0 0 rgba(91,110,248,0)} 30%{box-shadow:0 0 0 4px rgba(91,110,248,.22)} }
+
+/* Floating playback bar */
+#mentor-player { position:absolute; left:0; right:0; bottom:68px; z-index:260; padding:0 14px; transform:translateY(160%); opacity:0; transition:all .35s cubic-bezier(.16,1,.3,1); pointer-events:none; }
+#mentor-player.show { transform:translateY(0); opacity:1; pointer-events:auto; }
+.mp-card { background:rgba(15,23,42,.96); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border-radius:18px; padding:12px 14px; box-shadow:0 16px 44px rgba(0,0,0,.35); color:#fff; }
+.mp-top { display:flex; align-items:center; gap:12px; }
+.mp-wave { display:flex; align-items:flex-end; gap:3px; height:24px; width:26px; flex-shrink:0; }
+.mp-wave span { display:block; width:3px; height:6px; background:#fff; border-radius:2px; animation:mpwave 1s ease-in-out infinite; }
+.mp-wave span:nth-child(2){animation-delay:.15s} .mp-wave span:nth-child(3){animation-delay:.3s} .mp-wave span:nth-child(4){animation-delay:.45s}
+#mentor-player.paused .mp-wave span { animation-play-state:paused; height:6px; }
+@keyframes mpwave { 0%,100%{height:6px} 50%{height:22px} }
+.mp-stage { flex:1; min-width:0; }
+.mp-stage-label { font-size:10px; text-transform:uppercase; letter-spacing:.6px; color:rgba(255,255,255,.55); font-weight:700; }
+.mp-stage-text { font-size:12.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
+.mp-ctrl { display:flex; align-items:center; gap:7px; flex-shrink:0; }
+.mp-btn { height:34px; min-width:34px; padding:0 8px; border-radius:50px; border:none; background:rgba(255,255,255,.15); color:#fff; font-size:14px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:transform .15s; font-family:inherit; }
+.mp-btn:active { transform:scale(.9); }
+.mp-btn.main { background:#fff; color:#0F172A; width:38px; }
+.mp-progress { height:4px; background:rgba(255,255,255,.15); border-radius:3px; margin-top:11px; overflow:hidden; }
+.mp-progress-fill { height:100%; background:#fff; border-radius:3px; width:0%; transition:width .4s ease; }
+
+/* Voice modals (reuse modal-sheet) */
+.vmodal { position:absolute; inset:0; z-index:300; display:flex; flex-direction:column; justify-content:flex-end; opacity:0; pointer-events:none; transition:opacity .3s; }
+.vmodal.open { opacity:1; pointer-events:auto; }
 </style>
 </head>
 <body>
@@ -648,6 +684,17 @@ body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); 
     </div>
     <div class="scroll-area" style="padding-top:0;padding-bottom:120px">
       <div class="lesson-hero-illus" id="lesson-d-illus"></div>
+
+      <!-- ── Mentor de Voz: botões obrigatórios ── -->
+      <div class="mentor-bar">
+        <button class="mentor-btn primary wide" id="m-listen" onclick="mentorListen()"><span class="mb-ico">🎧</span> Ouvir Explicação</button>
+        <button class="mentor-btn" id="m-guide" onclick="mentorGuide()"><span class="mb-ico">▶</span> Executar Comigo</button>
+        <button class="mentor-btn" id="m-exercise" onclick="mentorExercise()"><span class="mb-ico">✏️</span> Fazer Exercício</button>
+        <button class="mentor-btn" id="m-evo" onclick="mentorEvolution()"><span class="mb-ico">📈</span> Registrar Evolução</button>
+        <button class="mentor-btn" id="m-read" onclick="mentorRead()"><span class="mb-ico">📖</span> Ler Conteúdo</button>
+      </div>
+      <div class="mentor-hint" id="mentor-hint">🎧 Toque em <strong>Ouvir</strong> e o mentor vai te explicar esta lição como um treinador particular.</div>
+
       <div class="tutorial-area" id="tutorial-area">
         <div class="tutorial-step-header">
           <span class="tutorial-step-label">Tutorial Interativo</span>
@@ -998,6 +1045,59 @@ body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); 
   <!-- ── Toast ── -->
   <div id="toast">✓ <span id="toast-msg">Salvo!</span></div>
 
+  <!-- ── Mentor: barra de reprodução flutuante ── -->
+  <div id="mentor-player">
+    <div class="mp-card">
+      <div class="mp-top">
+        <div class="mp-wave" id="mp-wave"><span></span><span></span><span></span><span></span></div>
+        <div class="mp-stage">
+          <div class="mp-stage-label" id="mp-stage-label">Mentor</div>
+          <div class="mp-stage-text" id="mp-stage-text">…</div>
+        </div>
+        <div class="mp-ctrl">
+          <button class="mp-btn" id="mp-speed" onclick="Mentor.cycleSpeed()" title="Velocidade">1x</button>
+          <button class="mp-btn main" id="mp-toggle" onclick="Mentor.toggle()" title="Pausar / Continuar">⏸</button>
+          <button class="mp-btn" id="mp-stop" onclick="Mentor.stop()" title="Parar">✕</button>
+        </div>
+      </div>
+      <div class="mp-progress"><div class="mp-progress-fill" id="mp-progress-fill"></div></div>
+    </div>
+  </div>
+
+  <!-- ── Modal: Fazer Exercício ── -->
+  <div id="modal-exercise" class="vmodal">
+    <div class="modal-backdrop" onclick="closeExercise()"></div>
+    <div class="modal-sheet" id="exercise-sheet" style="transform:translateY(100%)">
+      <div class="modal-handle"></div>
+      <div class="modal-title">✏️ Seu Exercício Prático</div>
+      <div id="exercise-lesson" style="font-size:12px;font-weight:700;color:var(--p);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px"></div>
+      <div id="exercise-challenge" style="background:linear-gradient(135deg,#EEF0FF,#F5F3FF);border-left:3px solid var(--p);border-radius:0 14px 14px 0;padding:16px;font-size:15px;line-height:1.65;color:var(--text);margin-bottom:14px"></div>
+      <button class="mentor-btn" onclick="speakChallenge()" style="margin-bottom:14px"><span class="mb-ico">🎧</span> Ouvir o desafio</button>
+      <div class="modal-btns">
+        <button class="btn-cancel" onclick="closeExercise()">Depois</button>
+        <button class="btn-save" id="exercise-done-btn" onclick="markExerciseDone()" style="background:linear-gradient(135deg,#22C55E,#16A34A);box-shadow:0 8px 24px rgba(34,197,94,.25)">✅ Concluí o desafio</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal: Registrar Evolução ── -->
+  <div id="modal-evolution" class="vmodal">
+    <div class="modal-backdrop" onclick="closeEvolution()"></div>
+    <div class="modal-sheet" id="evolution-sheet" style="transform:translateY(100%)">
+      <div class="modal-handle"></div>
+      <div class="modal-title">📈 Registrar Evolução</div>
+      <div class="form-group">
+        <label class="form-label">Como foi aplicar esta lição na vida real?</label>
+        <textarea class="form-input" id="evolution-text" rows="3" placeholder="O que você fez, o que sentiu, o que mudou…" style="resize:none;min-height:92px;line-height:1.5"></textarea>
+      </div>
+      <div class="modal-btns">
+        <button class="btn-cancel" onclick="closeEvolution()">Cancelar</button>
+        <button class="btn-save" onclick="saveEvolution()">Salvar registro</button>
+      </div>
+      <div id="evolution-list" style="margin-top:18px"></div>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -1161,6 +1261,10 @@ let state = {
   streak: 0,
   lastLogin: null,
   onboardingDone: false,
+  // Voice Learning System
+  evolution: {},        // { lessonId: [{date, text}] }
+  exercisesDone: [],    // [lessonId]
+  voiceRate: 1,
   // Financial
   fin: {
     pcts: {...DEFAULT_PCTS},
@@ -1204,6 +1308,10 @@ function load() {
       if (!state.fin.dividas) state.fin.dividas = JSON.parse(JSON.stringify(DEFAULT_DIVIDAS));
       if (!state.fin.desejos) state.fin.desejos = JSON.parse(JSON.stringify(DEFAULT_DESEJOS));
       if (!state.fin.investimentos) state.fin.investimentos = JSON.parse(JSON.stringify(DEFAULT_INVEST));
+      // Voice system backward compat
+      if (!state.evolution) state.evolution = {};
+      if (!Array.isArray(state.exercisesDone)) state.exercisesDone = [];
+      if (state.voiceRate == null) state.voiceRate = 1;
     }
   } catch(e) {}
 }
@@ -1220,6 +1328,7 @@ function init() {
     showScreen('s-onboard');
   }
   buildEmojiGrid();
+  Mentor.init();
 }
 
 function updateStreak() {
@@ -1272,6 +1381,7 @@ function showScreen(id) {
 }
 
 function goToScreen(id) {
+  if (typeof Mentor !== 'undefined') Mentor.stop();
   const prev = document.getElementById(currentScreen);
   if (prev && currentScreen !== id) {
     prev.classList.remove('active');
@@ -1477,6 +1587,7 @@ function refreshLessons() {
 }
 
 function openLesson(id) {
+  if (typeof Mentor !== 'undefined') Mentor.stop();
   currentLessonId = id;
   tutStep = 0;
   const lesson = LESSONS.find(l => l.id === id);
@@ -1511,6 +1622,9 @@ function openLesson(id) {
 
   // Content
   document.getElementById('lesson-d-content').innerHTML = lesson.content;
+
+  // Mentor de voz
+  renderMentorBar(lesson);
 
   // Complete button
   const btn = document.getElementById('lesson-complete-btn');
@@ -1570,6 +1684,7 @@ function tutPrev() {
 }
 
 function closeLesson() {
+  if (typeof Mentor !== 'undefined') Mentor.stop();
   document.getElementById('s-lesson').classList.remove('active');
   const prev = document.getElementById('s-lesson').dataset.prevScreen || 's-home';
   document.getElementById(prev).classList.add('active');
@@ -2268,6 +2383,304 @@ function addInvestimento() {
   initInvest();
   state.fin.investimentos.push({id:'i'+Date.now(),name,value});
   save(); refreshInvestimentos();
+}
+
+// ═══════════════════════════════════════
+// MENTOR DE VOZ — VOICE LEARNING SYSTEM
+// ═══════════════════════════════════════
+// Roteiro do mentor para cada lição, seguindo as 5 etapas didáticas:
+// 1) Conceito  2) Importância  3) Aplicação real  4) Execução  5) Desafio.
+// A voz NÃO lê o conteúdo da tela — ela reinterpreta como um professor faria.
+const MENTOR = {
+  1:{ hook:"Deixa eu te explicar o que é ter um ideal de verdade. A maioria das pessoas vive reagindo ao dia e nunca escolhe para onde vai. Um ideal é o oposto disso: é uma imagem tão clara do que você quer criar que te tira da cama de manhã.",
+      porque:"Isso importa porque o seu cérebro precisa de um alvo. Sem alvo, a sua energia se espalha e nada de grande acontece. Com um ideal claro, a sua mente passa a filtrar o mundo inteiro a favor dele.",
+      real:"Pensa em qualquer prédio onde você já entrou. Antes do primeiro tijolo, ele existiu na cabeça de alguém como uma fantasia. Depois virou planta, virou projeto. E só então virou concreto. Toda conquista nasce exatamente assim.",
+      exec:"Na prática, eu quero que você escolha um objetivo que ainda parece grande demais. Não o objetivo seguro que você já sabe que alcança. Escolha o que te assusta um pouco. Esse é o que transforma.",
+      desafio:"Seu desafio para as próximas 24 horas: escreva, em uma só frase, o ideal que você quer construir. Sem filtrar, sem se preocupar com o como. Só a imagem clara do destino." },
+  2:{ hook:"Vou te mostrar a maior armadilha do desenvolvimento pessoal. Você já sabe quase tudo que precisa fazer. Saber nunca foi o problema. O problema mora no espaço entre saber e fazer.",
+      porque:"Isso muda tudo, porque enquanto você achar que falta informação, você vai colecionar mais cursos e mais vídeos. Mas o que te trava não é falta de saber. É um programa mental antigo rodando no automático: o paradigma.",
+      real:"É como dirigir até o trabalho e não lembrar do caminho. O hábito assumiu o controle. Com as suas metas é igual: o paradigma te leva de volta ao de sempre, mesmo você sabendo perfeitamente o que deveria fazer.",
+      exec:"Para mudar isso, você ataca o subconsciente de dois jeitos: repetição diária do pensamento novo, e emoção forte ligada a ele. Repetição mais emoção reescreve o programa por baixo.",
+      desafio:"Seu desafio de hoje: identifique uma coisa que você sabe que deveria fazer e não faz. Escreva qual hábito antigo está te puxando para trás. Dar nome ao inimigo já enfraquece ele." },
+  3:{ hook:"Vamos encarar uma verdade desconfortável e libertadora ao mesmo tempo. O seu resultado de hoje é o reflexo exato do seu paradigma de hoje. Não é sorte, não é o mercado. É o programa que você roda por dentro.",
+      porque:"E isso é poder, não culpa. Se foi você que criou o resultado atual, então é você que pode criar um resultado diferente. Quem entrega a culpa para fora, entrega junto o poder de mudar.",
+      real:"Repara nas empresas e nas famílias. Onde o líder muda a forma de pensar, todo mundo em volta começa a mudar também. O paradigma de uma pessoa molda a cultura de muitas.",
+      exec:"A técnica são os três erres: Reconhecer o pensamento limitante quando ele aparece, Repelir ele de forma consciente, e Repetir no lugar o pensamento que você escolheu.",
+      desafio:"Seu desafio nas próximas horas: quando vier um pensamento do tipo eu não consigo, pare, diga em voz baixa esse pensamento não é meu, e troque por um melhor. Faça isso pelo menos três vezes hoje." },
+  4:{ hook:"Deixa eu te apresentar a você mesmo. Você é três coisas: uma mente que pensa, uma mente profunda que sente e guarda tudo, e um corpo que age. E essa mente profunda controla quase tudo que você faz sem perceber.",
+      porque:"Isso importa porque a maioria tenta mudar a vida na força do corpo, na marra. Mas se o sentimento lá dentro continua o mesmo, o corpo sempre volta ao padrão antigo. A mudança de verdade começa na vibração interna.",
+      real:"Você sente isso todo dia. Entra num ambiente e percebe a energia das pessoas antes de qualquer palavra ser dita. Pensamento com emoção gera uma frequência. E essa frequência atrai o que combina com ela.",
+      exec:"Na prática: escolha de propósito um pensamento e una ele a um sentimento real. Não pense apenas vou conseguir. Sinta como vai ser quando conseguir. Pensamento mais sentimento move o corpo.",
+      desafio:"Seu desafio de hoje: feche os olhos por dois minutos e imagine, com emoção de verdade, o seu objetivo já realizado. Sinta isso no corpo. Faça antes de dormir." },
+  5:{ hook:"Vou te mostrar uma vantagem que você tem e quase não usa. Além dos cinco sentidos, você tem seis poderes mentais: percepção, foco, razão, imaginação, memória e intuição. Os animais não têm isso. Você tem, e deixa parado.",
+      porque:"Isso importa porque a maioria é programada de fora para dentro. O ambiente manda, o medo manda, os outros mandam. Quem desenvolve essas faculdades passa a se programar de dentro para fora.",
+      real:"Olha o foco. Duas pessoas vivem o mesmo problema. Uma só enxerga o problema e afunda. A outra foca na solução e encontra a saída. Mesma realidade, faculdade diferente, vida diferente.",
+      exec:"Na prática, treine uma faculdade por vez. Comece pelo foco: o que você foca, cresce. Tire a atenção do que está errado e coloque no próximo passo possível.",
+      desafio:"Seu desafio: hoje, toda vez que se pegar reclamando de um problema, pergunte na hora: qual é o próximo passo que depende de mim? E redirecione o foco para a solução." },
+  6:{ hook:"Vamos falar do termostato invisível que controla a sua vida: a sua autoimagem. É a imagem que você tem de si mesmo. E você quase nunca passa muito longe dela, nem para cima, nem para baixo.",
+      porque:"Importa porque, se por dentro você se vê valendo pouco, você vai sabotar sem perceber qualquer coisa que te leve além disso. Mudar a ação sem mudar a autoimagem é enxugar gelo.",
+      real:"É como o termostato do ar condicionado. Marcou vinte graus: esquentou, ele esfria; esfriou demais, ele aquece. A sua mente faz isso com os seus resultados, sempre te trazendo de volta ao nível que você acredita merecer.",
+      exec:"Para subir esse termostato, use o filme da sua vida. Toda noite, assista mentalmente à versão de você que já vive o resultado. O subconsciente não distingue o real do que é vividamente imaginado.",
+      desafio:"Seu desafio para hoje: escreva em três frases, no presente, a pessoa que você está se tornando. Comece cada uma com Eu sou. E leia em voz alta antes de dormir." },
+  7:{ hook:"Deixa eu te preparar para a parte mais difícil de qualquer mudança. Toda transformação passa por quatro estágios: escravidão, razão, conflito e liberdade. E quase todo mundo desiste exatamente no terceiro.",
+      porque:"Isso importa porque, quando você sentir o conflito, o velho puxando de um lado e o novo do outro, a sua tendência vai ser achar que está errado. Não está. O conflito é o sinal de que você está crescendo.",
+      real:"É a borboleta dentro do casulo. Aquela pressão toda parece que vai matar ela. Mas é justamente a pressão que dá força para as asas. Tira a luta, e ela nasce fraca demais para voar.",
+      exec:"Na prática, quando bater o medo de continuar, não recue para o conforto. Lembre: coragem não é não sentir medo. É decidir que o seu ideal importa mais do que o medo.",
+      desafio:"Seu desafio: identifique um lugar da sua vida onde você está sentindo esse conflito agora. Em vez de fugir, dê um passo pequeno na direção do novo nas próximas 24 horas." },
+  8:{ hook:"Vamos destruir um mito agora. Você acha que falta motivação. Não falta. O que constrói resultado não é motivação, é prática consistente. A motivação vai e volta. O hábito fica.",
+      porque:"Importa porque, enquanto você esperar estar com vontade, você não vai agir nos dias difíceis. E são justamente os dias difíceis que separam quem chega de quem desiste.",
+      real:"Bob Proctor leu o mesmo livro por mais de cinquenta anos. Não porque era lento, mas porque sabia que a repetição aprofunda. Amador pratica até acertar. Profissional pratica até não conseguir mais errar.",
+      exec:"Na prática, fuja das duas grandes mentiras: vou tentar, e faço quando der. Tentar não é fazer, e o momento perfeito nunca chega. Escolha uma ação pequena e repita todos os dias.",
+      desafio:"Seu desafio: escolha um hábito de cinco minutos ligado ao seu objetivo e se comprometa a fazer ele hoje e amanhã, sem falta. Pequeno e diário vence grande e raro." },
+  9:{ hook:"Vou te dar a palavra mágica do sucesso: atitude. Mas não no sentido raso. Atitude é a soma dos seus pensamentos, dos seus sentimentos e das suas ações. É a única coisa que você controla por completo.",
+      porque:"Importa porque você não controla o que acontece, mas controla a pincelada que usa para pintar o que acontece. A mesma situação pode virar desastre ou oportunidade, dependendo da sua atitude.",
+      real:"Pela lei da polaridade, tudo tem dois lados. Frio e quente são a mesma coisa em graus diferentes. Em toda crise existe, na mesma medida, uma semente de vantagem. Quem treina atitude aprende a procurar essa semente.",
+      exec:"Na prática: pegue um pensamento negativo que se repete em você e vire ele para o polo oposto, de propósito. Não é negar o problema. É escolher de onde olhar para ele.",
+      desafio:"Seu desafio de hoje: na próxima vez que algo der errado, antes de reagir, pergunte: qual é a oportunidade escondida aqui? E anote a resposta." },
+  10:{ hook:"Deixa eu te explicar o que torna uma pessoa insubstituível. Não é talento. É o hábito de fazer aquilo que as pessoas comuns não gostam de fazer, mesmo sem gostar. Esse é o denominador comum de todo sucesso.",
+      porque:"Importa porque habilidade some, mercado muda, mas a pessoa comprometida com crescimento contínuo sempre encontra lugar. Uma hora de estudo por dia te torna especialista em cinco anos.",
+      real:"Pensa na lei do acréscimo: sempre deixe quem interage com você com a sensação de ter ganhado algo. Dê mais do que pedem. Essa pessoa vira referência, vira a primeira de quem lembram.",
+      exec:"Na prática, escolha uma área e estude ela de forma deliberada, todo dia. E em cada interação, se pergunte: como eu deixo essa pessoa melhor do que eu encontrei?",
+      desafio:"Seu desafio: hoje, entregue mais do que esperam de você em uma única tarefa ou conversa. Faça o algo a mais que ninguém pediu." },
+  11:{ hook:"Vamos falar de uma lei que parece contraintuitiva: para receber, você dá primeiro. Não por troca calculada, mas por movimento. Dar e receber são o mesmo gesto, visto de dois lados.",
+      porque:"Importa porque o medo fecha. Quando você segura tudo com medo da falta, você ativa o ciclo da escassez. Quando você dá com alegria, abre o canal por onde a abundância volta.",
+      real:"Você já sentiu isso. Ajudou alguém sem querer nada em troca, e veio uma onda de bem-estar e, depois, oportunidades inesperadas. Generosidade gera generosidade. Mesquinhez gera mesquinhez.",
+      exec:"Na prática, cultive o espírito de opulência: pense e aja com abundância mesmo antes do resultado aparecer. E em cada relação, deixe uma impressão de ganho.",
+      desafio:"Seu desafio: hoje, dê algo de valor sem esperar retorno. Pode ser tempo, atenção, uma indicação, um elogio sincero. E repare em como isso muda o seu estado." },
+  12:{ hook:"Vamos fechar com a alavanca mais poderosa de todas. Crescimento linear é seguro, mas lento. O salto quântico é exponencial, e exige coragem: você age antes de se sentir pronto.",
+      porque:"Importa porque você sozinho é forte, mas você cercado de mentes alinhadas é forte ao quadrado. Quando duas mentes se unem por um propósito, nasce uma terceira mente, maior que a soma das duas.",
+      real:"É o mastermind. Toda grande conquista da história teve um grupo por trás. As pessoas com quem você anda não são detalhe. Elas definem quem você vai se tornar.",
+      exec:"Na prática, escolha as suas alianças com cuidado. Aproxime-se de quem te puxa para cima, e comece a formar um pequeno grupo comprometido com o crescimento de cada um.",
+      desafio:"Seu desafio: identifique uma pessoa que te inspira e marque uma conversa com ela nas próximas 24 horas. Comece a construir o seu mastermind hoje." },
+};
+
+// Quebra texto em frases curtas (evita o corte de fala longa do Chrome)
+function splitSentences(str){
+  return (String(str || '').replace(/\s+/g,' ').trim().match(/[^.!?]+[.!?]*/g) || []).map(s=>s.trim()).filter(Boolean);
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// Motor de voz (Web Speech API) — funciona offline, sem servidor.
+const Mentor = {
+  segs:[], idx:0, playing:false, paused:false, voice:null, rate:1, onSeg:null, onDone:null, ctx:'listen', _keepAlive:null,
+  supported(){ return typeof window !== 'undefined' && 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window; },
+  init(){
+    if(!this.supported()) return;
+    this.rate = state.voiceRate || 1;
+    this.loadVoice();
+    try { window.speechSynthesis.onvoiceschanged = () => this.loadVoice(); } catch(e){}
+  },
+  loadVoice(){
+    try {
+      const vs = window.speechSynthesis.getVoices() || [];
+      this.voice = vs.find(v=>/pt[-_]br/i.test(v.lang)) || vs.find(v=>/^pt/i.test(v.lang)) || null;
+    } catch(e){ this.voice = null; }
+  },
+  play(segments, opts={}){
+    if(!this.supported()){ showToast('⚠️ Seu navegador não suporta a voz do mentor'); return; }
+    this.stop(true);
+    this.segs = (segments||[]).filter(s=>s && s.text);
+    if(!this.segs.length) return;
+    this.idx = 0; this.playing = true; this.paused = false;
+    this.onSeg = opts.onSeg || null; this.onDone = opts.onDone || null;
+    this.ctx = opts.ctx || 'listen';
+    if(!this.voice) this.loadVoice();
+    showPlayer();
+    setListenBtn(true);
+    // keep-alive: contorna o bug do Chrome que pausa sozinho falas longas
+    clearInterval(this._keepAlive);
+    this._keepAlive = setInterval(()=>{ if(this.playing && !this.paused){ try{ window.speechSynthesis.resume(); }catch(e){} } }, 9000);
+    this._speak();
+  },
+  _speak(){
+    if(!this.playing) return;
+    if(this.idx >= this.segs.length){ this._finish(); return; }
+    const seg = this.segs[this.idx];
+    if(this.onSeg) try{ this.onSeg(seg, this.idx, this.segs.length); }catch(e){}
+    updatePlayer(seg, this.idx, this.segs.length);
+    const u = new SpeechSynthesisUtterance(seg.text);
+    if(this.voice){ u.voice = this.voice; u.lang = this.voice.lang; } else { u.lang = 'pt-BR'; }
+    u.rate = this.rate; u.pitch = 1.02; u.volume = 1;
+    u.onend = () => {
+      if(!this.playing) return;
+      this.idx++;
+      setTimeout(()=>{ if(this.playing && !this.paused) this._speak(); }, seg.pause || 320);
+    };
+    u.onerror = () => { if(!this.playing) return; this.idx++; setTimeout(()=>{ if(this.playing && !this.paused) this._speak(); }, 200); };
+    try { window.speechSynthesis.speak(u); } catch(e){ this._finish(); }
+  },
+  pause(){ if(this.playing && !this.paused){ this.paused = true; try{ window.speechSynthesis.pause(); }catch(e){} updatePlayerBtn(); } },
+  resume(){ if(this.playing && this.paused){ this.paused = false; try{ window.speechSynthesis.resume(); }catch(e){} updatePlayerBtn(); } },
+  toggle(){ this.paused ? this.resume() : this.pause(); },
+  cycleSpeed(){
+    const steps = [0.9, 1, 1.15, 1.3];
+    let i = steps.indexOf(this.rate); i = (i + 1) % steps.length;
+    this.rate = steps[i]; state.voiceRate = this.rate; save();
+    const b = document.getElementById('mp-speed'); if(b) b.textContent = this.rate + 'x';
+    if(this.playing){ try{ window.speechSynthesis.cancel(); }catch(e){} this.paused = false; this._speak(); }
+  },
+  stop(silent){
+    this.playing = false; this.paused = false;
+    clearInterval(this._keepAlive);
+    try { window.speechSynthesis.cancel(); } catch(e){}
+    setListenBtn(false);
+    if(!silent){ hidePlayer(); }
+  },
+  _finish(){
+    this.playing = false; this.paused = false;
+    clearInterval(this._keepAlive);
+    setListenBtn(false);
+    const cb = this.onDone; this.onDone = null;
+    hidePlayer();
+    if(cb) try{ cb(); }catch(e){}
+  }
+};
+
+// ── Player UI ──
+function showPlayer(){ const p=document.getElementById('mentor-player'); if(p){ p.classList.add('show'); p.classList.remove('paused'); document.getElementById('mp-speed').textContent = Mentor.rate + 'x'; } }
+function hidePlayer(){ const p=document.getElementById('mentor-player'); if(p) p.classList.remove('show'); }
+function updatePlayer(seg, idx, total){
+  const lbl=document.getElementById('mp-stage-label'); if(lbl) lbl.textContent = seg.stageLabel || 'Mentor';
+  const txt=document.getElementById('mp-stage-text'); if(txt) txt.textContent = seg.text;
+  const fill=document.getElementById('mp-progress-fill'); if(fill) fill.style.width = Math.round(((idx+1)/total)*100) + '%';
+  updatePlayerBtn();
+}
+function updatePlayerBtn(){
+  const b=document.getElementById('mp-toggle'); if(b) b.textContent = Mentor.paused ? '▶' : '⏸';
+  const p=document.getElementById('mentor-player'); if(p) p.classList.toggle('paused', Mentor.paused);
+}
+function setListenBtn(on){
+  const b=document.getElementById('m-listen'); if(!b) return;
+  b.classList.toggle('speaking', !!on);
+  b.innerHTML = on ? '<span class="mb-ico">🎙️</span> Falando…' : '<span class="mb-ico">🎧</span> Ouvir Explicação';
+}
+
+// ── Monta o roteiro completo (5 etapas) de uma lição ──
+function buildMentorScript(lesson){
+  const m = MENTOR[lesson.id] || {};
+  const nm = (state.user.name || '').trim();
+  const segs = [];
+  const add = (stage, label, text) => splitSentences(text).forEach(t => segs.push({ stage, stageLabel: label, text: t }));
+  const opener = (nm ? nm + ', ' : '') + (m.hook || ('Vamos falar sobre ' + lesson.title + '.'));
+  add('conceito',  'O que é',        opener);
+  add('porque',    'Por que importa', m.porque);
+  add('real',      'No mundo real',   m.real);
+  add('execucao',  'Como executar',   m.exec);
+  add('desafio',   'Seu desafio',     m.desafio);
+  segs.push({ stage:'desafio', stageLabel:'Seu desafio', text:'Quando executar, volte aqui e toque em Registrar Evolução. Eu vou acompanhar o seu progresso.', pause:200 });
+  return segs;
+}
+
+// ── Botão OUVIR EXPLICAÇÃO ──
+function mentorListen(){
+  const lesson = LESSONS.find(l => l.id === currentLessonId); if(!lesson) return;
+  if(!Mentor.supported()){ showToast('⚠️ Voz não suportada. Use Chrome ou Safari atualizado.'); return; }
+  if(Mentor.playing && Mentor.ctx === 'listen'){ Mentor.toggle(); return; }
+  Mentor.play(buildMentorScript(lesson), { ctx:'listen' });
+}
+
+// ── Botão EXECUTAR COMIGO (guia passo a passo, sincronizado com o tutorial) ──
+function mentorGuide(){
+  const lesson = LESSONS.find(l => l.id === currentLessonId); if(!lesson) return;
+  if(!Mentor.supported()){ showToast('⚠️ Voz não suportada. Use Chrome ou Safari atualizado.'); return; }
+  const m = MENTOR[lesson.id] || {};
+  const nm = (state.user.name || '').trim();
+  const segs = [];
+  segs.push({ stage:'guia', stageLabel:'Vamos juntos', text:(nm ? nm + ', ' : '') + 'vamos executar isto juntos, passo a passo. Respire fundo e me acompanhe.', pause:500 });
+  lesson.steps.forEach((s, i) => {
+    splitSentences('Passo ' + (i+1) + '. ' + s.title + '. ' + s.desc).forEach((t, j) => {
+      segs.push({ stage:'guia', stageLabel:'Passo ' + (i+1) + ' de ' + lesson.steps.length, text:t, tut:(j===0 ? i : null), pause:480 });
+    });
+  });
+  splitSentences(m.desafio).forEach(t => segs.push({ stage:'desafio', stageLabel:'Seu desafio agora', text:t, pause:480 }));
+  segs.push({ stage:'desafio', stageLabel:'Seu desafio agora', text:'Quando terminar, toque em Registrar Evolução e me conte como foi.', pause:200 });
+  Mentor.play(segs, { ctx:'guide', onSeg:(seg)=>{ if(seg.tut != null){ tutStep = seg.tut; renderTutStep(lesson); } } });
+}
+
+// ── Botão LER CONTEÚDO ──
+function mentorRead(){
+  const el = document.getElementById('lesson-d-content');
+  if(!el) return;
+  el.scrollIntoView({ behavior:'smooth', block:'start' });
+  el.classList.remove('reading-flash'); void el.offsetWidth; el.classList.add('reading-flash');
+}
+
+// ── Modais helpers ──
+function openVModal(id){ const m=document.getElementById(id); if(!m) return; m.classList.add('open'); const sh=m.querySelector('.modal-sheet'); requestAnimationFrame(()=>{ if(sh) sh.style.transform='none'; }); }
+function closeVModal(id){ const m=document.getElementById(id); if(!m) return; const sh=m.querySelector('.modal-sheet'); if(sh) sh.style.transform='translateY(100%)'; setTimeout(()=>m.classList.remove('open'), 360); }
+
+// ── Botão FAZER EXERCÍCIO ──
+function mentorExercise(){
+  const lesson = LESSONS.find(l => l.id === currentLessonId); if(!lesson) return;
+  const m = MENTOR[lesson.id] || {};
+  document.getElementById('exercise-lesson').textContent = 'Lição ' + lesson.id + ' · ' + lesson.title;
+  document.getElementById('exercise-challenge').textContent = m.desafio || 'Aplique hoje, na prática, aquilo que você aprendeu nesta lição.';
+  const btn = document.getElementById('exercise-done-btn');
+  btn.textContent = state.exercisesDone.includes(lesson.id) ? '✅ Desafio concluído' : '✅ Concluí o desafio';
+  openVModal('modal-exercise');
+}
+function closeExercise(){ closeVModal('modal-exercise'); }
+function speakChallenge(){
+  const lesson = LESSONS.find(l => l.id === currentLessonId); if(!lesson) return;
+  if(!Mentor.supported()){ showToast('⚠️ Voz não suportada neste navegador'); return; }
+  const m = MENTOR[lesson.id] || {};
+  Mentor.play(splitSentences(m.desafio).map(t => ({ stage:'desafio', stageLabel:'Seu desafio', text:t })), { ctx:'listen' });
+}
+function markExerciseDone(){
+  const lesson = LESSONS.find(l => l.id === currentLessonId); if(!lesson) return;
+  if(!state.exercisesDone.includes(lesson.id)){ state.exercisesDone.push(lesson.id); save(); }
+  document.getElementById('exercise-done-btn').textContent = '✅ Desafio concluído';
+  renderMentorBar(lesson);
+  showToast('💪 Desafio concluído! Continue assim.');
+  closeExercise();
+}
+
+// ── Botão REGISTRAR EVOLUÇÃO ──
+function mentorEvolution(){
+  const lesson = LESSONS.find(l => l.id === currentLessonId); if(!lesson) return;
+  document.getElementById('evolution-text').value = '';
+  renderEvolutionList(lesson.id);
+  openVModal('modal-evolution');
+  setTimeout(()=>{ const t=document.getElementById('evolution-text'); if(t) t.focus(); }, 320);
+}
+function closeEvolution(){ closeVModal('modal-evolution'); }
+function renderEvolutionList(id){
+  const list = document.getElementById('evolution-list');
+  const items = (state.evolution && state.evolution[id]) || [];
+  if(!items.length){ list.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px 0">Nenhum registro ainda. Escreva o primeiro acima 👆</div>'; return; }
+  list.innerHTML = '<div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Sua evolução</div>' +
+    items.slice().reverse().map(e => '<div style="background:var(--bg);border-radius:12px;padding:10px 12px;margin-bottom:8px"><div style="font-size:11px;color:var(--light);margin-bottom:3px">'+escapeHtml(e.date)+'</div><div style="font-size:13px;color:var(--text);line-height:1.5">'+escapeHtml(e.text)+'</div></div>').join('');
+}
+function saveEvolution(){
+  const lesson = LESSONS.find(l => l.id === currentLessonId); if(!lesson) return;
+  const txt = document.getElementById('evolution-text').value.trim();
+  if(!txt){ showToast('Escreva algo sobre sua evolução 😊'); return; }
+  if(!state.evolution) state.evolution = {};
+  if(!state.evolution[lesson.id]) state.evolution[lesson.id] = [];
+  state.evolution[lesson.id].push({ date:new Date().toLocaleDateString('pt-BR'), text:txt });
+  save();
+  document.getElementById('evolution-text').value = '';
+  renderEvolutionList(lesson.id);
+  renderMentorBar(lesson);
+  showToast('📈 Evolução registrada!');
+}
+
+// ── Atualiza estado da barra de botões do mentor ao abrir uma lição ──
+function renderMentorBar(lesson){
+  if(!lesson) return;
+  const evo = (state.evolution && state.evolution[lesson.id]) ? state.evolution[lesson.id].length : 0;
+  const evoBtn = document.getElementById('m-evo');
+  if(evoBtn) evoBtn.innerHTML = '<span class="mb-ico">📈</span> Evolução' + (evo ? ' (' + evo + ')' : '');
+  const exBtn = document.getElementById('m-exercise');
+  if(exBtn) exBtn.innerHTML = state.exercisesDone.includes(lesson.id)
+    ? '<span class="mb-ico">✅</span> Exercício feito'
+    : '<span class="mb-ico">✏️</span> Fazer Exercício';
+  const hint = document.getElementById('mentor-hint');
+  if(hint) hint.innerHTML = Mentor.supported()
+    ? '🎧 Toque em <strong>Ouvir</strong> e o mentor vai te explicar esta lição como um treinador particular.'
+    : '⚠️ Seu navegador não suporta a voz do mentor. Tente o Chrome ou o Safari mais recente.';
 }
 
 // ═══════════════════════════════════════
