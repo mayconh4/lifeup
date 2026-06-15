@@ -163,9 +163,12 @@ Verifique se o navegador é o Chrome/Safari atualizado e se o som não está no 
 Em alguns aparelhos a voz só inicia após o **primeiro toque** na tela. Se o app
 mostrar *"navegador não suporta a voz"*, troque de navegador.
 
-**Em que idioma o mentor fala?**
-Português do Brasil (`pt-BR`). O app escolhe automaticamente a melhor voz pt-BR
-instalada no aparelho.
+**Em que idioma / qual voz o mentor usa?**
+Português do Brasil (`pt-BR`). O app escolhe automaticamente a **melhor** voz
+pt-BR disponível, priorizando as **vozes neurais do Microsoft Edge** (as
+*"Online (Natural)"*, como *Thalita*, *Francisca* e *Antônio*) — bem mais
+naturais. Por isso, para a melhor experiência de voz, **abra o app no Microsoft
+Edge**. No Chrome/Safari ele usa a melhor voz pt-BR disponível como alternativa.
 
 **Perco meu progresso se fechar o app?**
 Não. Tudo fica salvo no aparelho. Só some se você usar *Reiniciar Progresso* ou

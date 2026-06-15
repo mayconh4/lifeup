@@ -2475,7 +2475,21 @@ const Mentor = {
   loadVoice(){
     try {
       const vs = window.speechSynthesis.getVoices() || [];
-      this.voice = vs.find(v=>/pt[-_]br/i.test(v.lang)) || vs.find(v=>/^pt/i.test(v.lang)) || null;
+      // Prioriza as vozes neurais do Edge (Online / Natural) em pt-BR.
+      const score = v => {
+        const lang = (v.lang || '').toLowerCase();
+        const name = (v.name || '').toLowerCase();
+        if(!/^pt/.test(lang)) return 0;
+        let s = /pt[-_]br/.test(lang) ? 100 : 50;          // pt-BR primeiro
+        if(/natural/.test(name))   s += 50;                 // motor neural do Edge
+        if(/online/.test(name))    s += 25;                 // vozes online do Edge
+        if(/microsoft/.test(name)) s += 10;
+        // nomes das vozes pt-BR do Edge (Natural)
+        if(/thal[íi]ta|francisca|ant[oô]nio|brenda|donato|el[íi]?za|giovanna|let[íi]cia|manuela|val[eé]rio|yara|humberto|nicolau|f[aá]bio|julia|leila/.test(name)) s += 8;
+        return s;
+      };
+      const ranked = vs.map(v => ({ v, s: score(v) })).filter(x => x.s > 0).sort((a, b) => b.s - a.s);
+      this.voice = ranked.length ? ranked[0].v : null;
     } catch(e){ this.voice = null; }
   },
   play(segments, opts={}){
