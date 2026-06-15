@@ -2495,6 +2495,31 @@ const MENTOR = {
 function splitSentences(str){
   return (String(str || '').replace(/\s+/g,' ').trim().match(/[^.!?]+[.!?]*/g) || []).map(s=>s.trim()).filter(Boolean);
 }
+// Quebra um trecho em pedaços <= max caracteres, em pausas naturais
+// (vírgula/ponto-e-vírgula). A voz do navegador corta falas longas (~15s).
+function chunkText(str, max){
+  const text = String(str || '').replace(/\s+/g,' ').trim();
+  if(text.length <= max) return text ? [text] : [];
+  const out = [];
+  let cur = '';
+  for(const part of text.split(/(?<=[,;:—])\s+/)){
+    if(cur && (cur + ' ' + part).length > max){ out.push(cur.trim()); cur = part; }
+    else cur = cur ? (cur + ' ' + part) : part;
+  }
+  if(cur.trim()) out.push(cur.trim());
+  // garante que nenhum pedaço passe de max (corte forçado por palavras)
+  const final = [];
+  for(const c of out){
+    if(c.length <= max){ final.push(c); continue; }
+    let buf = '';
+    for(const w of c.split(' ')){
+      if(buf && (buf + ' ' + w).length > max){ final.push(buf); buf = w; }
+      else buf = buf ? (buf + ' ' + w) : w;
+    }
+    if(buf) final.push(buf);
+  }
+  return final;
+}
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
@@ -2793,12 +2818,21 @@ const Mentor = {
   _speakBrowser(seg){
     this.mode = 'browser';
     if(!('speechSynthesis' in window)){ this._advance(seg); return; }
-    const u = new SpeechSynthesisUtterance(seg.text);
-    if(this.voice){ u.voice = this.voice; u.lang = this.voice.lang; } else { u.lang = 'pt-BR'; }
-    u.rate = this.rate; u.pitch = 1.02; u.volume = 1;
-    u.onend = () => { if(this.playing) this._advance(seg); };
-    u.onerror = () => { if(this.playing) this._advance(seg); };
-    try { window.speechSynthesis.speak(u); } catch(e){ this._finish(); }
+    // A voz do navegador (Edge/Chrome) corta falas longas (~15s). Quebra em
+    // pedaços curtos e fala um a um para ler o parágrafo INTEIRO.
+    const chunks = chunkText(seg.text, 170);
+    let ci = 0;
+    const speakChunk = () => {
+      if(!this.playing) return;
+      if(ci >= chunks.length){ this._advance(seg); return; }
+      const u = new SpeechSynthesisUtterance(chunks[ci]);
+      if(this.voice){ u.voice = this.voice; u.lang = this.voice.lang; } else { u.lang = 'pt-BR'; }
+      u.rate = this.rate; u.pitch = 1.02; u.volume = 1;
+      u.onend = () => { if(!this.playing) return; ci++; speakChunk(); };
+      u.onerror = () => { if(!this.playing) return; ci++; speakChunk(); };
+      try { window.speechSynthesis.speak(u); } catch(e){ this._advance(seg); }
+    };
+    speakChunk();
   },
   pause(){
     if(this.playing && !this.paused){
