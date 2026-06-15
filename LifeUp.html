@@ -756,12 +756,12 @@ body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); 
           </div>
           <span class="profile-item-arrow">›</span>
         </div>
-        <input type="file" id="content-file-input" accept=".json,application/json" style="display:none" onchange="onContentFile(this)">
+        <input type="file" id="content-file-input" accept=".docx,.pdf,.json" multiple style="display:none" onchange="onContentFileSync(this)">
         <div class="profile-item" onclick="importContent()">
           <div class="profile-item-icon" style="background:#F0FFF4">📚</div>
           <div class="profile-item-text">
-            <strong>Importar conteúdo completo</strong>
-            <span id="content-status-sub">Carregar seu licoes.json (privado, fica só neste aparelho)</span>
+            <strong>Importar conteúdo das lições</strong>
+            <span id="content-status-sub">Escolha seus arquivos DOCX/PDF — fica só neste aparelho</span>
           </div>
           <span class="profile-item-arrow">›</span>
         </div>
@@ -1837,7 +1837,7 @@ function refreshProfile() {
   const cSub = document.getElementById('content-status-sub');
   if(cSub){
     const n = fullCount();
-    cSub.textContent = n ? (n + ' lições com conteúdo completo (toque para trocar)') : 'Carregar seu licoes.json (privado, fica só neste aparelho)';
+    cSub.textContent = n ? (n + ' lições com conteúdo completo (toque para adicionar mais)') : 'Escolha seus arquivos DOCX/PDF — fica só neste aparelho';
   }
 }
 
@@ -2547,23 +2547,136 @@ function hasFull(id){
 }
 function fullCount(){ let n=0; for(const k in LESSON_FULL){ if(hasFull(k)) n++; } return n; }
 function importContent(){ const i=document.getElementById('content-file-input'); if(i) i.click(); }
-function onContentFile(input){
-  const f = input.files && input.files[0]; if(!f){ return; }
-  const r = new FileReader();
-  r.onload = () => {
-    try {
-      const obj = JSON.parse(r.result);
-      let count = 0; for(const k in obj){ if(obj[k] && Array.isArray(obj[k].paragraphs)) count++; }
-      if(!count) throw new Error('formato');
-      localStorage.setItem('lifeup_content', JSON.stringify(obj));
-      LESSON_FULL = obj;
-      showToast('📚 Conteúdo completo importado (' + count + ' lições)!');
-      refreshProfile();
-    } catch(e){ showToast('Arquivo inválido. Use o licoes.json gerado pelo extrator.'); }
-    input.value = '';
-  };
-  r.readAsText(f);
+
+// Descobre o número da lição pelo nome do arquivo (Licao/Lição N)
+function lessonNumFromName(name){
+  const n = name.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ç/gi,'c').toLowerCase();
+  const m = n.match(/lic[a]?o\s*0*(\d{1,2})/) || n.match(/licao\s*0*(\d{1,2})/);
+  return m ? parseInt(m[1],10) : null;
 }
+// Limpa o texto bruto em parágrafos (remove cabeçalhos/rodapés repetidos)
+function cleanToParagraphs(text){
+  const BO = ['life success','pensando em resultados','pensando nos resultados','para lideres','para líderes','guia do participante','não está permitida a duplicação','nao esta permitida a duplicacao','todos os direitos reservados'];
+  const out = [];
+  for(const raw of String(text).split('\n')){
+    const ln = raw.replace(/[ \t ]+/g,' ').trim();
+    if(!ln) continue;
+    const low = ln.toLowerCase();
+    if(BO.some(b => low.includes(b))) continue;
+    if(/^[\d.\-–—\s]+$/.test(ln)) continue;
+    if(ln.length <= 2) continue;
+    out.push(ln);
+  }
+  return out;
+}
+// DOCX → texto (ZIP + descompressão nativa do navegador, sem dependências)
+async function inflateRaw(u8){
+  const ds = new DecompressionStream('deflate-raw');
+  const ab = await new Response(new Blob([u8]).stream().pipeThrough(ds)).arrayBuffer();
+  return new Uint8Array(ab);
+}
+async function docxToText(ab){
+  const bytes = new Uint8Array(ab), dv = new DataView(ab);
+  let eocd = -1;
+  for(let i = bytes.length - 22; i >= 0 && i >= bytes.length - 22 - 65536; i--){
+    if(dv.getUint32(i, true) === 0x06054b50){ eocd = i; break; }
+  }
+  if(eocd < 0) throw new Error('zip');
+  const cdOff = dv.getUint32(eocd + 16, true), cnt = dv.getUint16(eocd + 10, true);
+  let p = cdOff, target = null;
+  for(let i = 0; i < cnt; i++){
+    if(dv.getUint32(p, true) !== 0x02014b50) break;
+    const method = dv.getUint16(p + 10, true), compSize = dv.getUint32(p + 20, true);
+    const nameLen = dv.getUint16(p + 28, true), extraLen = dv.getUint16(p + 30, true), commentLen = dv.getUint16(p + 32, true);
+    const localOff = dv.getUint32(p + 42, true);
+    const name = new TextDecoder().decode(bytes.subarray(p + 46, p + 46 + nameLen));
+    if(name === 'word/document.xml'){ target = { method, compSize, localOff }; break; }
+    p += 46 + nameLen + extraLen + commentLen;
+  }
+  if(!target) throw new Error('docx');
+  const lh = target.localOff;
+  const lnameLen = dv.getUint16(lh + 26, true), lextraLen = dv.getUint16(lh + 28, true);
+  const dataStart = lh + 30 + lnameLen + lextraLen;
+  const comp = bytes.subarray(dataStart, dataStart + target.compSize);
+  const xmlBytes = target.method === 0 ? comp : await inflateRaw(comp);
+  let xml = new TextDecoder('utf-8').decode(xmlBytes);
+  xml = xml.replace(/<\/w:p>/g, '\n').replace(/<w:br\s*\/?>/g, '\n').replace(/<w:tab\s*\/?>/g, ' ');
+  let t = xml.replace(/<[^>]+>/g, '');
+  const ta = document.createElement('textarea'); ta.innerHTML = t; t = ta.value;
+  return t;
+}
+// PDF → texto (pdf.js via CDN, só carregado se houver PDF)
+let _pdfjsReady = null;
+function ensurePdfJs(){
+  if(window.pdfjsLib) return Promise.resolve();
+  if(_pdfjsReady) return _pdfjsReady;
+  _pdfjsReady = new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload = () => { try{ window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; }catch(e){} res(); };
+    s.onerror = () => rej(new Error('pdfjs'));
+    document.head.appendChild(s);
+  });
+  return _pdfjsReady;
+}
+async function pdfToText(ab){
+  await ensurePdfJs();
+  const pdf = await window.pdfjsLib.getDocument({ data: ab }).promise;
+  let txt = '';
+  for(let i = 1; i <= pdf.numPages; i++){
+    const page = await pdf.getPage(i);
+    const tc = await page.getTextContent();
+    txt += tc.items.map(it => it.str).join(' ') + '\n';
+  }
+  return txt;
+}
+// Importa vários arquivos (DOCX/PDF) — ou um licoes.json pronto
+async function onContentFile(input){
+  const files = [...(input.files || [])];
+  if(!files.length){ return; }
+  // Caso seja um JSON pronto (gerado pelo extrator Python)
+  const json = files.find(f => /\.json$/i.test(f.name));
+  if(json){
+    try {
+      const obj = JSON.parse(await json.text());
+      let count = 0; for(const k in obj){ if(obj[k] && Array.isArray(obj[k].paragraphs)) count++; }
+      if(!count) throw new Error('fmt');
+      LESSON_FULL = obj; saveImported();
+      showToast('📚 Conteúdo importado (' + count + ' lições)!'); refreshProfile();
+    } catch(e){ showToast('JSON inválido.'); }
+    input.value = ''; return;
+  }
+  showToast('⏳ Lendo ' + files.length + ' arquivo(s)…');
+  const obj = { ...LESSON_FULL };
+  let ok = 0, fail = 0, skip = 0;
+  for(const f of files){
+    const n = lessonNumFromName(f.name);
+    if(!n || n < 1 || n > 12){ skip++; continue; }
+    try {
+      const ab = await f.arrayBuffer();
+      let text;
+      if(/\.docx$/i.test(f.name)) text = await docxToText(ab);
+      else if(/\.pdf$/i.test(f.name)) text = await pdfToText(ab);
+      else { skip++; continue; }
+      const paras = cleanToParagraphs(text);
+      if(paras.length){ obj[String(n)] = { source: f.name, paragraphs: paras }; ok++; }
+      else fail++;
+    } catch(e){ fail++; }
+  }
+  if(ok){
+    LESSON_FULL = obj; saveImported();
+    showToast('📚 ' + ok + ' lição(ões) importada(s)' + (fail ? (' · ' + fail + ' falhou') : '') + (skip ? (' · ' + skip + ' ignorado') : ''));
+    refreshProfile();
+  } else {
+    showToast('Nada lido. Nomeie os arquivos como "Licao 1…", "Licao 2…".');
+  }
+  input.value = '';
+}
+function saveImported(){
+  try { localStorage.setItem('lifeup_content', JSON.stringify(LESSON_FULL)); }
+  catch(e){ showToast('⚠️ Conteúdo grande — válido só nesta sessão (não coube no armazenamento).'); }
+}
+function onContentFileSync(input){ onContentFile(input).catch(()=>{ showToast('Erro ao ler arquivos'); input.value=''; }); }
 function clearImportedContent(){
   try { localStorage.removeItem('lifeup_content'); } catch(e){}
   LESSON_FULL = {};
