@@ -2736,9 +2736,24 @@ async function onContentFile(input){
   if(json){
     try {
       const obj = JSON.parse(await json.text());
-      let count = 0; for(const k in obj){ if(obj[k] && Array.isArray(obj[k].paragraphs)) count++; }
+      let count = 0;
+      if(Array.isArray(obj.modules)){
+        // formato curso.json (modules/items/sections)
+        obj.modules.forEach(m => (m.items || []).forEach(it => {
+          if(!it || !it.number) return;
+          const paras = (it.sections && it.sections.length)
+            ? it.sections.flatMap(s => [s.heading, s.text].filter(Boolean))
+            : String(it.content || '').split(/\n{2,}/);
+          LESSON_FULL[String(it.number)] = { source:'curso.json', paragraphs: paras.map(p=>String(p).trim()).filter(Boolean), markdown: it.content || '', sections: it.sections || [] };
+          count++;
+        }));
+        if(obj.contentVersion){ try{ localStorage.setItem('lifeup_contentVersion', obj.contentVersion); }catch(e){} }
+      } else {
+        // formato licoes.json ({ "1": { paragraphs:[] } })
+        for(const k in obj){ if(obj[k] && Array.isArray(obj[k].paragraphs)){ LESSON_FULL[k] = obj[k]; count++; } }
+      }
       if(!count) throw new Error('fmt');
-      LESSON_FULL = obj; saveImported();
+      saveImported();
       showToast('📚 Conteúdo importado (' + count + ' lições)!'); refreshProfile();
     } catch(e){ showToast('JSON inválido.'); }
     input.value = ''; return;
