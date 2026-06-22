@@ -81,8 +81,41 @@ def find_source(n):
             return hits[0]
     return None
 
+TITLES = {
+    1:'Um Ideal que Vale a Pena', 2:'A Distância entre Saber e Fazer',
+    3:'A Sua Mente Infinita', 4:'O Gênio Secreto',
+    5:'O Truque para Manter-se no Comando', 6:'O Ambiente é o Espelho de Nós Mesmos',
+    7:'Demolindo a Barreira do Terror', 8:'O Poder da Prática',
+    9:'A Palavra Mágica', 10:'A Pessoa Mais Valiosa: o Líder',
+    11:'Deixando Todos com a Sensação de Acréscimo', 12:'Aumentando a Mente',
+}
+
+def looks_like_heading(p):
+    if len(p) > 70 or len(p) < 3:
+        return False
+    if p.endswith(('.', '!', '?', ':', ',', ';')):
+        return False
+    letters = [c for c in p if c.isalpha()]
+    if letters and sum(1 for c in letters if c.isupper()) / len(letters) > 0.6:
+        return True   # MAIÚSCULAS = título
+    return p.istitle() and len(p.split()) <= 8
+
+def to_sections(paras, default_heading):
+    sections, cur = [], {'heading': default_heading, 'text': ''}
+    for p in paras:
+        if looks_like_heading(p):
+            if cur['text'].strip():
+                sections.append(cur)
+            cur = {'heading': p, 'text': ''}
+        else:
+            cur['text'] = (cur['text'] + '\n\n' + p).strip() if cur['text'] else p
+    if cur['text'].strip():
+        sections.append(cur)
+    return sections
+
 def main():
-    data = {}
+    import datetime
+    data, items = {}, []
     for n in range(1, 13):
         src = find_source(n)
         if not src:
@@ -92,15 +125,34 @@ def main():
             paras = extract(src)
             data[str(n)] = {'source': os.path.basename(src), 'paragraphs': paras}
             chars = sum(len(p) for p in paras)
-            print(f'Lição {n}: {len(paras):3d} parágrafos · {chars:6d} chars · {os.path.basename(src)}')
+            title = TITLES.get(n, f'Lição {n}')
+            sections = to_sections(paras, title)
+            items.append({
+                'id': f'licao-{n:02d}', 'number': n, 'title': f'Lição {n} — {title}',
+                'content': '\n\n'.join(paras), 'sections': sections,
+            })
+            print(f'Lição {n}: {len(paras):3d} parágrafos · {len(sections):2d} seções · {chars:6d} chars · {os.path.basename(src)}')
         except Exception as e:
             print(f'Lição {n}: ERRO {e} ({src})')
-    out = os.path.join(ROOT, 'content', 'licoes.json')
-    os.makedirs(os.path.dirname(out), exist_ok=True)
-    with open(out, 'w', encoding='utf-8') as f:
+
+    os.makedirs(os.path.join(ROOT, 'content'), exist_ok=True)
+    # licoes.json (formato simples, usado pelo import por aparelho)
+    out1 = os.path.join(ROOT, 'content', 'licoes.json')
+    with open(out1, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False)
-    print(f'\n✅ Gerado: content/licoes.json ({len(data)} lições, {os.path.getsize(out)} bytes)')
-    print('   (este arquivo é privado e está no .gitignore — não suba no GitHub)')
+    # curso.json (formato do guia: modules/items/sections + contentVersion)
+    curso = {
+        'contentVersion': datetime.date.today().isoformat(),
+        'course': 'Pensando em Resultados',
+        'modules': [{'id': 'licoes', 'title': 'Lições', 'items': items}],
+    }
+    out2 = os.path.join(ROOT, 'content', 'curso.json')
+    with open(out2, 'w', encoding='utf-8') as f:
+        json.dump(curso, f, ensure_ascii=False)
+
+    print(f'\n✅ content/licoes.json ({len(data)} lições, {os.path.getsize(out1)} bytes)')
+    print(f'✅ content/curso.json  ({len(items)} itens, {os.path.getsize(out2)} bytes, versão {curso["contentVersion"]})')
+    print('   (privados, no .gitignore — não suba no GitHub)')
 
 if __name__ == '__main__':
     main()

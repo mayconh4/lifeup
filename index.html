@@ -1355,6 +1355,7 @@ function init() {
   }
   buildEmojiGrid();
   loadImportedContent();
+  loadCurso();
   Mentor.init();
 }
 
@@ -2566,6 +2567,77 @@ function loadImportedContent(){
   try { const d = localStorage.getItem('lifeup_content'); LESSON_FULL = d ? (JSON.parse(d) || {}) : {}; }
   catch(e){ LESSON_FULL = {}; }
 }
+
+// ── curso.json: conteúdo completo como asset estático (privado, gitignored) ──
+// Carregado por fetch no início; alimenta as lições e fica fora do localStorage.
+let CURSO = null;
+async function loadCurso(){
+  try {
+    const r = await fetch('curso.json', { cache: 'no-store' });
+    if(!r.ok) return;                       // ausente no site público → ignora
+    const curso = await r.json();
+    if(!curso || !Array.isArray(curso.modules)) return;
+    CURSO = curso;
+    // Controle de versão: troca de conteúdo NÃO apaga o progresso do usuário
+    try {
+      const saved = localStorage.getItem('lifeup_contentVersion');
+      if(curso.contentVersion && saved !== curso.contentVersion)
+        localStorage.setItem('lifeup_contentVersion', curso.contentVersion);
+    } catch(e){}
+    // Itens numerados alimentam as 12 lições (texto completo + markdown + seções)
+    curso.modules.forEach(m => (m.items || []).forEach(it => {
+      if(!it || !it.number) return;
+      const paras = (it.sections && it.sections.length)
+        ? it.sections.flatMap(s => [s.heading, s.text].filter(Boolean))
+        : String(it.content || '').split(/\n{2,}/);
+      LESSON_FULL[String(it.number)] = {
+        source: 'curso.json',
+        paragraphs: paras.map(p => String(p).trim()).filter(Boolean),
+        markdown: it.content || '',
+        sections: it.sections || [],
+      };
+    }));
+    if(currentScreen === 's-lesson' && currentLessonId){
+      const l = LESSONS.find(x => x.id === currentLessonId);
+      if(l){ renderLessonBody(l); renderMentorBar(l); }
+    }
+  } catch(e){}
+}
+
+// Busca leve por palavra-chave nas seções (contexto p/ tutor de IA, etc.)
+function buscarSecoes(termo, max){
+  const q = String(termo || '').toLowerCase().trim(); if(!q) return [];
+  const hits = [];
+  if(CURSO){
+    CURSO.modules.forEach(m => (m.items || []).forEach(it => (it.sections || []).forEach(s => {
+      if(((s.heading || '') + ' ' + (s.text || '')).toLowerCase().includes(q))
+        hits.push({ licao: it.title, heading: s.heading, text: s.text });
+    })));
+  }
+  return hits.slice(0, max || 3);
+}
+
+// Markdown → HTML (mínimo e seguro: escapa antes, depois formata)
+function mdToHtml(md){
+  const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  const lines = String(md || '').split('\n');
+  let html = '', inUl = false;
+  const inline = t => esc(t)
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[^*])\*([^*]+)\*/g, '$1<em>$2</em>');
+  const closeUl = () => { if(inUl){ html += '</ul>'; inUl = false; } };
+  for(const raw of lines){
+    const ln = raw.trim();
+    if(!ln){ closeUl(); continue; }
+    let m;
+    if((m = ln.match(/^(#{1,4})\s+(.*)$/))){ closeUl(); const lvl = Math.min(m[1].length + 2, 4); html += `<h${lvl}>${inline(m[2])}</h${lvl}>`; }
+    else if(/^>\s?/.test(ln)){ closeUl(); html += `<blockquote>${inline(ln.replace(/^>\s?/, ''))}</blockquote>`; }
+    else if(/^[-*•]\s+/.test(ln)){ if(!inUl){ html += '<ul>'; inUl = true; } html += `<li>${inline(ln.replace(/^[-*•]\s+/, ''))}</li>`; }
+    else { closeUl(); html += `<p>${inline(ln)}</p>`; }
+  }
+  closeUl();
+  return html;
+}
 function hasFull(id){
   const o = LESSON_FULL && LESSON_FULL[String(id)];
   return !!(o && Array.isArray(o.paragraphs) && o.paragraphs.length);
@@ -2711,9 +2783,13 @@ function clearImportedContent(){
 function renderLessonBody(lesson){
   const el = document.getElementById('lesson-d-content'); if(!el) return;
   if(hasFull(lesson.id)){
-    const paras = LESSON_FULL[String(lesson.id)].paragraphs;
-    el.innerHTML = '<div class="full-badge">📚 Conteúdo completo · sessão na íntegra</div>' +
-      paras.map(p => '<p>' + escapeHtml(p) + '</p>').join('');
+    const o = LESSON_FULL[String(lesson.id)];
+    const badge = '<div class="full-badge">📚 Conteúdo completo · sessão na íntegra</div>';
+    if(o.markdown){
+      el.innerHTML = badge + mdToHtml(o.markdown);   // curso.json (Markdown)
+    } else {
+      el.innerHTML = badge + o.paragraphs.map(p => '<p>' + escapeHtml(p) + '</p>').join('');
+    }
   } else {
     el.innerHTML = lesson.content;
   }

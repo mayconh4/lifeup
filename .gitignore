@@ -1,6 +1,8 @@
 # ── Conteúdo PRIVADO (material protegido) — NUNCA publicar ──
 content/licoes.json
 content/*.json
+curso.json
+content/curso.json
 
 # Documentos-fonte das lições (uso local apenas)
 *.pdf
